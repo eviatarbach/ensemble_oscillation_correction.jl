@@ -2,13 +2,14 @@ using Distributed
 using Distributions
 using LinearAlgebra
 
+#addprocs()
+
 m = 20  # ensemble size
 
-σ = 10
-β = 8/3
-ρ = 28
-
-function lorenz(t, u)
+@everywhere function lorenz(t, u)
+    σ = 10
+    β = 8/3
+    ρ = 28
     du = zeros(3)
     du[1] = σ*(u[2] - u[1])
     du[2] = u[1]*(ρ - u[3]) - u[2]
@@ -16,9 +17,9 @@ function lorenz(t, u)
     return du
 end
 
-function rk4(f::Function, y0, t0::Float64, t1::Float64, h::Float64)
+@everywhere function rk4(f::Function, y0, t0::Float64, t1::Float64, h::Float64)
     y = y0
-    n = Int((t1 - t0)/h)
+    n = (t1 - t0)÷h
     t = t0
     for i in 1:n
         k1 = h * f(t, y)
@@ -47,21 +48,16 @@ struct ETKF
 end
 
 x0 = [1.0; 0.0; 0.0]
-tspan = (0.0, 100.0)
-prob = ODEProblem(lorenz, x0, tspan)
-sol = solve(prob)
+E = hcat([rk4(lorenz, x0, 0.0, last, 0.1) for last=range(10.0, stop=100.0, length=m)]...)
 
-function run_da()
+function run_da(E)
     Δt = 0.1
     H = Diagonal(ones(3))
     R = Diagonal(ones(3))
     R_inv = inv(R)
     obs_err = MvNormal(zeros(3), diag(R))
 
-    E = hcat(sol.u[end-(m-1)*10:10:end]...)
-    ens = [rk4(lorenz, E[:, i], 0.0, 1.0, Δt) for i=1:m]
-
-    x_true = sol.u[end]
+    x_true = E[:, end]
     x_free = x_true + rand(obs_err)
 
     errs = []
@@ -85,7 +81,7 @@ function run_da()
         append!(errs, err)
         append!(errs_free, sqrt(mean((x_free .- x_true).^2)))
 
-        E = hcat([rk4(lorenz, E[:, i], 0.0, Δt, Δt) for i=1:m]...)
+        E = hcat(pmap((col)->rk4(lorenz, col, 0.0, Δt, Δt), E[:, i] for i=1:m)...)
 
         x_true = rk4(lorenz, x_true, 0.0, Δt, Δt)
         x_free = rk4(lorenz, x_free, 0.0, Δt, Δt)
