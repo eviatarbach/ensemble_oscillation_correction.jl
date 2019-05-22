@@ -1,10 +1,6 @@
 using Distributed
-using DifferentialEquations
-using Plots
 using Distributions
 using LinearAlgebra
-
-#addprocs()
 
 m = 20  # ensemble size
 
@@ -12,10 +8,27 @@ m = 20  # ensemble size
 β = 8/3
 ρ = 28
 
-function lorenz(du, u, p, t)
- du[1] = σ*(u[2] - u[1])
- du[2] = u[1]*(ρ - u[3]) - u[2]
- du[3] = u[1]*u[2] - β*u[3]
+function lorenz(t, u)
+    du = zeros(3)
+    du[1] = σ*(u[2] - u[1])
+    du[2] = u[1]*(ρ - u[3]) - u[2]
+    du[3] = u[1]*u[2] - β*u[3]
+    return du
+end
+
+function rk4(f::Function, y0, t0::Float64, t1::Float64, h::Float64)
+    y = y0
+    n = Int((t1 - t0)/h)
+    t = t0
+    for i in 1:n
+        k1 = h * f(t, y)
+        k2 = h * f(t + 0.5*h, y + 0.5*k1)
+        k3 = h * f(t + 0.5*h, y + 0.5*k2)
+        k4 = h * f(t + h, y + k3)
+        y = y + (k1 + 2*k2 + 2*k3 + k4)/6
+        t = t0 + i*h
+    end
+    return y
 end
 
 abstract type Model end
@@ -46,13 +59,10 @@ function run_da()
     obs_err = MvNormal(zeros(3), diag(R))
 
     E = hcat(sol.u[end-(m-1)*10:10:end]...)
-    ens = [init(ODEProblem(lorenz, E[:, i], (0.0, 1.0)), Tsit5()) for i=1:m]
+    ens = [rk4(lorenz, E[:, i], 0.0, 1.0, Δt) for i=1:m]
 
     x_true = sol.u[end]
     x_free = x_true + rand(obs_err)
-
-    int_true = init(ODEProblem(lorenz, x_true, tspan), Tsit5())
-    int_free = init(ODEProblem(lorenz, x_free, tspan), Tsit5())
 
     errs = []
 
@@ -75,17 +85,10 @@ function run_da()
         append!(errs, err)
         append!(errs_free, sqrt(mean((x_free .- x_true).^2)))
 
-        E = hcat([solve(ODEProblem(lorenz, E[:, i], (0.0, Δt))).u[end] for i=1:m]...)
+        E = hcat([rk4(lorenz, E[:, i], 0.0, Δt, Δt) for i=1:m]...)
 
-        step!(int_true, Δt, true)
-        step!(int_free, Δt, true)
-
-        x_true = int_true.u
-        x_free = int_free.u
+        x_true = rk4(lorenz, x_true, 0.0, Δt, Δt)
+        x_free = rk4(lorenz, x_free, 0.0, Δt, Δt)
     end
     return errs, errs_free
 end
-#for t = 1:100
-#    y = x + rand(obs_err)
-#end
-#plot(sol, vars=(1, 2))
