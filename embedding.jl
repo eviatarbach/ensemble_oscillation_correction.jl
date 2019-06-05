@@ -136,26 +136,4 @@ function project(tree, point, data, k, N)
 
    return sum((1 ./ dists).*[data[id:id+N, :] for id in idx])/sum(1 ./ dists)
 end
-
-#u0 = rand(7)
-#y = rk4(ferrari, u0, 0., 500.0*73, 0.01)[end-530000+1:end, :]
-#t = (0:0.01:500.0*73)[1:530000]
-
-# tspan = (0.0, 1500.0*73)
-# prob = ODEProblem(ferrari, u0, tspan)
-# sol = solve(prob, Euler(), maxiters=1e7)
-#
-# y = hcat(sol.u...)'[end-40000:end, :]
-# t = sol.t[1:40000+1]
-#
-# @rput y
-# reval("library(Rssa)")
-# reval("s <- ssa(y, kind=\"mssa\", L=7000)")
-#L = 100
-#USV = hsvd(hcat(sol.u...)', L)
-#plot(USV, cumulative=false)
-
-#seasonal_groupings = [2:3]
-#yrt, yrs = SingularSpectrumAnalysis.reconstruct(USV, [], seasonal_groupings)
-
 end

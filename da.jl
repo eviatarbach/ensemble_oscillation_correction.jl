@@ -1,6 +1,6 @@
 module DA
 
-export run_da
+export ETKF
 
 include("integrators.jl")
 using .Integrators
@@ -11,9 +11,9 @@ using LinearAlgebra
 
 #addprocs()
 
-function run_da(E::Array{Float64, 2}, model::Function,
-                R::Symmetric{Float64, Array{Float64, 2}}, m::Int64;
-                H=I, Δt::Float64=0.1, window::Float64=1.0, cycles::Int64=100)
+function ETKF(E::Array{Float64, 2}, model::Function,
+              R::Symmetric{Float64, Array{Float64, 2}}, m::Int64;
+              H=I, Δt::Float64=0.1, window::Float64=1.0, cycles::Int64=100)
     if H != I
         p, n = size(H)
     else
