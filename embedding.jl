@@ -1,6 +1,6 @@
 module Embedding
 
-export mssa, reconstruct, transform, project
+export mssa, reconstruct, transform, project, obs_operator
 
 using LinearAlgebra
 using ToeplitzMatrices
@@ -136,4 +136,11 @@ function project(tree, point, data, k, N)
 
    return sum((1 ./ dists).*[data[id:id+N, :] for id in idx])/sum(1 ./ dists)
 end
+
+function obs_operator(EV, M, D, k)
+   n = (M - 1)*2 + 1
+   A = diagm(0 => ones(n))
+   return vcat([transform(A[:, i], M, EV, M, D, k) for i=1:n]...)
+end
+
 end
