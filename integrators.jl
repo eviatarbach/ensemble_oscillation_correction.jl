@@ -19,7 +19,7 @@ function rk4_inplace(f::Function, y0::Array{Float64, 1}, t0::Float64,
 end
 
 function rk4(f::Function, y0::Array{Float64, 1}, t0::Float64,
-             t1::Float64, h::Float64)
+             t1::Float64, h::Float64, outfreq::Int64=1)
     y = y0
     n = round(Int, (t1 - t0)/h)
     t = t0
@@ -33,7 +33,7 @@ function rk4(f::Function, y0::Array{Float64, 1}, t0::Float64,
         hist[i, :] = y
         t = t0 + i*h
     end
-    return hist
+    return hist[1:outfreq:end, :]
 end
 
 end

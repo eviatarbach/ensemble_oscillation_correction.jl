@@ -73,7 +73,7 @@ function var_rotate!(EW, EV, M, D, S)
    EVscaled=EV[:,1:S]*diagm(0=>sqrt.(EW[1:S]))
    EVreshape=reshape(EVscaled,M,D,S)
 
-   dummy, T = varimax(EVreshape)
+   _, T = varimax(EVreshape)
 
    EV[:,1:S]=EV[:,1:S]*T
    EW[1:S]=diag(T'*diagm(0=>EW[1:S])*T)
@@ -130,7 +130,7 @@ function project(tree, point, data, k, N)
    idx, dists = knn(tree, point, k)
    len = size(data)[1]
 
-   mask = idx .<= (len - N)
+   mask = (idx .<= (len - N)) .& (dists .> 0)
    idx = idx[mask]
    dists = dists[mask]
 
@@ -139,8 +139,8 @@ end
 
 function obs_operator(EV, M, D, k)
    n = (M - 1)*2 + 1
-   A = diagm(0 => ones(n))
-   return vcat([transform(A[:, i], M, EV, M, D, k) for i=1:n]...)
+   A = diagm(0 => ones(n*D))
+   return vcat([transform(reshape(A[:, i], n, D), M, EV, M, D, k) for i=1:n*D]...)
 end
 
 end
