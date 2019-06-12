@@ -1,5 +1,6 @@
 using Distributed
 using LinearAlgebra
+using NearestNeighbors
 
 include("da.jl")
 include("embedding.jl")
@@ -46,3 +47,10 @@ H[4:6, :] = T'
 
 x = reshape(low[1:1+58, :], 177, 1)
 y = H*x
+
+# 20 seems to be best k
+k = 20
+r = Embedding.reconstruct(X, EV, M, D, 1:2);
+osc = sum(r[1:2, :, :], dims=1)[1, :, :]
+tree = KDTree(copy(low'))
+#project(tree, low[100, :], low, osc, k, 100)

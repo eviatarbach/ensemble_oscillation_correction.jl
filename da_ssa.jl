@@ -11,9 +11,9 @@ using Distributions
 using LinearAlgebra
 
 function ETKF_SSA(E::Array{Float64, 2}, model::Function,
-                  R::Symmetric{Float64, Array{Float64, 2}}, m::Int64, tree, osc;
-                  H=I, Δt::Float64=0.1, window::Float64=1.0, cycles::Int64=100,
-                  outfreq=1)
+                  R::Symmetric{Float64, Array{Float64, 2}}, m::Int64, tree, osc,
+                  k; H=I, Δt::Float64=0.1, window::Float64=1.0,
+                  cycles::Int64=100, outfreq=1)
     if H != I
         p, n = size(H)
     else
@@ -34,8 +34,9 @@ function ETKF_SSA(E::Array{Float64, 2}, model::Function,
 
     for cycle=1:cycles
         y = H*x_true + rand(obs_err)
-        y[p] = project(tree, mean(E, dims=2), osc, 20, 1)[2]
         x_m = mean(E, dims=2)
+        y[D+1:end] = project(tree, x_m, osc, k, 1)[2, :]
+
 
         X = (E .- x_m)/sqrt(m - 1)
         B = B + X*X'

@@ -126,7 +126,7 @@ function transform(x, n, EV::Array{Float64, 2}, M, D, ks)
    return R
 end
 
-function project(tree, point, data, k, N)
+function project(tree, point, data, osc, k, N)
    idx, dists = knn(tree, point, k)
    len = size(data)[1]
 
@@ -134,7 +134,7 @@ function project(tree, point, data, k, N)
    idx = idx[mask]
    dists = dists[mask]
 
-   return sum((1 ./ dists).*[data[id:id+N, :] for id in idx])/sum(1 ./ dists)
+   return sum((1 ./ dists).*[osc[id:id+N, :] for id in idx])/sum(1 ./ dists)
 end
 
 function obs_operator(EV, M, D, k)
