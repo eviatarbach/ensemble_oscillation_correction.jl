@@ -2,11 +2,11 @@ using Distributed
 using LinearAlgebra
 using NearestNeighbors
 
-include("da.jl")
+include("da_ssa.jl")
 include("embedding.jl")
 include("models.jl")
 include("integrators.jl")
-using .DA
+using .DA_SSA
 using .Embedding
 using .Models
 using .Integrators
@@ -53,4 +53,11 @@ k = 20
 r = Embedding.reconstruct(X, EV, M, D, 1:2);
 osc = sum(r[1:2, :, :], dims=1)[1, :, :]
 tree = KDTree(copy(low'))
+R = Symmetric(diagm(0 => [0.1, 0.1, 0.1, 0.42, 0.42, 0.42]))
 #project(tree, low[100, :], low, osc, k, 100)
+
+x0 = zeros(3)
+E = hcat([Integrators.rk4_inplace(rossler, x0, 0.0, last, 0.01) for last=0.4:0.4:0.4*(M-1)]...)
+
+errs, errs_free = DA_SSA.ETKF_SSA(E[:, end-19:end], rossler, R, 20, tree, osc,
+                                  low, 20, D, M, E'; H=H, cycles=1000)
