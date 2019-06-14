@@ -20,6 +20,8 @@ function ETKF(E::Array{Float64, 2}, model::Function,
         p, n = size(R)
     end
 
+    x_hist = []
+
     R_inv = inv(R)
     obs_err = MvNormal(zeros(p), R)
 
@@ -46,13 +48,14 @@ function ETKF(E::Array{Float64, 2}, model::Function,
         err = sqrt(mean((mean(E, dims=2) .- x_true).^2))
         append!(errs, err)
         append!(errs_free, sqrt(mean((x_free .- x_true).^2)))
+        append!(x_hist, mean(E, dims=2))
 
         E = hcat(map((col)->rk4_inplace(model, col, 0.0, window, Δt), E[:, i] for i=1:m)...)
 
         x_true = rk4_inplace(model, x_true, 0.0, window, Δt)
         x_free = rk4_inplace(model, x_free, 0.0, window, Δt)
     end
-    return errs, errs_free
+    return errs, errs_free, x_hist
 end
 
 end
