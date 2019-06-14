@@ -21,7 +21,7 @@ function ETKF_SSA(E::Array{Float64, 2}, model::Function,
     end
 
     full_x_hist = []
-    x_hist = reshape(reshape(E, m, 2*(M - 1) + 1, D)[:, 1:(M-1), :], m, D*(M-1))
+    x_hist = reshape(reshape(E', m, 2*(M - 1) + 1, D)[:, 1:(M-1), :], m, D*(M-1))'
 
     R_inv = inv(R)
     obs_err = MvNormal(zeros(p), R)
@@ -47,8 +47,11 @@ function ETKF_SSA(E::Array{Float64, 2}, model::Function,
         Ω = real((I + Y'*R_inv*Y)^(-1))
         w = Ω*Y'*R_inv*(y - H*x_m)
 
-        E = real(x_m .+ X*(w .+ sqrt(m - 1)*Ω^(1/2)))
-        x_hist = reshape(cat(reshape(x_hist, m, M - 1, D)[:, 2:end, :], reshape(E', m, 2*(M-1)+1, D)[:, M:M, :], dims=2), m, D*(M-1))
+        E_new = real(x_m .+ X*(w .+ sqrt(m - 1)*Ω^(1/2)))
+        E = reshape(E', m, 2*(M-1) + 1, D)
+        E[:, M, :] = reshape(E_new', m, 2*(M-1) + 1, D)[:, M, :]  # apply analysis increment only to present
+        E = reshape(E, m, (2*(M-1) + 1)*D)'
+        x_hist = reshape(cat(reshape(x_hist', m, M - 1, D)[:, 2:end, :], reshape(E', m, 2*(M-1)+1, D)[:, M:M, :], dims=2), m, D*(M-1))'
         append!(full_x_hist, reshape(mean(E, dims=2), 2*(M - 1) + 1, D)[M, :]')
         err = sqrt(mean((reshape(mean(E, dims=2), 2*(M - 1) + 1, D)[M, :] .- x_true).^2))
         append!(errs, err)
@@ -59,7 +62,7 @@ function ETKF_SSA(E::Array{Float64, 2}, model::Function,
             E_i = reshape(E_i, 2*(M - 1) + 1, D)
             E_i[M, :] = rk4_inplace(model, E_i[M, :], 0.0, window, Δt)
             E_i[M+1:end, :] = rk4(model, E_i[M, :], 0.0, window*(M - 1), Δt, 4)
-            E_i[1:M-1, :] = reshape(x_hist[m, :], M - 1, D)
+            E_i[1:M-1, :] = reshape(x_hist'[m, :], M - 1, D)
             E_i = reshape(E_i, D*(2*(M - 1) + 1))
             E[:, i] = E_i
         end

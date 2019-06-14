@@ -53,7 +53,7 @@ k = 20
 r = Embedding.reconstruct(X, EV, M, D, 1:2);
 osc = sum(r[1:2, :, :], dims=1)[1, :, :]
 tree = KDTree(copy(low'))
-R = Symmetric(diagm(0 => [1.0, 1.0, 1.0, 0.42, 0.42, 0.42]))
+R = Symmetric(diagm(0 => [1.0, 1.0, 1.0, 0.43, 0.51, 0.074]))
 #project(tree, low[100, :], low, osc, k, 100)
 
 m = 20
