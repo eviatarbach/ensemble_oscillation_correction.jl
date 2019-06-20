@@ -126,10 +126,9 @@ function transform(x, n, EV::Array{Float64, 2}, M, D, ks)
    return R
 end
 
-function project(tree, point, data, osc, k, N)
+function project(tree, point, osc, k, N)
    idx, dists = knn(tree, point, k)
-   len = size(data)[1]
-
+   len = size(osc)[1]
    mask = (idx .<= (len - N)) .& (dists .> 0)
    idx = idx[mask]
    dists = dists[mask]

@@ -1,6 +1,6 @@
-using Distributed
 using LinearAlgebra
 using NearestNeighbors
+using Distributions
 
 include("da_ssa.jl")
 include("embedding.jl")
@@ -27,7 +27,7 @@ using .Integrators
 M = 30
 D = 3
 u0 = zeros(D)
-y = rk4(rossler, u0, 0., 1500.0, 0.1)
+y = rk4(rossler, u0, 0., 15000.0, 0.1)
 low = y[5001:4:end, :]
 EW, EV, X = mssa(low, 30)
 T = obs_operator(EV, M, D, 1) + obs_operator(EV, M, D, 2)
@@ -52,21 +52,28 @@ y = H*x
 k = 20
 r = Embedding.reconstruct(X, EV, M, D, 1:2);
 osc = sum(r[1:2, :, :], dims=1)[1, :, :]
-tree = KDTree(copy(low'))
-R = Symmetric(diagm(0 => [1.0, 1.0, 1.0, 0.43, 0.51, 0.074]))
+
+pcs = 2
+_, _, v = svd(osc)
+v = v[:, 1:pcs]
+tree = KDTree(copy((osc*v)'))
+
+R = Symmetric(diagm(0 => vcat([1.0, 1.0, 1.0], [1.67, 2.39, 0.054])))
 #project(tree, low[100, :], low, osc, k, 100)
 
 m = 20
 x0 = low[end, :]
-E = Integrators.rk4(rossler, x0, 0.0, 0.4*((2*(M - 1) + 1)*D + m), 0.1, 4)'
+E = Integrators.rk4(Models.rossler2, x0, 0.0, 0.4*((2*(M - 1) + 1)*D + m), 0.1, 4)'
 
 x_hist = zeros(m, (2*(M - 1) + 1), D)
 
 #x_hist = reshape(x_hist, m, 2*(M - 1) + 1, D)
+dist = MvNormal(zeros(3), diagm(0=>[0.4, 0.4, 0.04]))
 for i=1:m
-    x_hist[i, :, :] = E[:, i:i+(2*(M - 1) + 1) - 1]'
+    x_hist[i, :, :] = E[:, 1:1+(2*(M - 1) + 1) - 1]' + rand(dist, 59)'
+    #x_hist[i, :, :] = E[:, i:i+(2*(M - 1) + 1) - 1]'
 end
 x_hist = reshape(x_hist, m, (2*(M - 1) + 1)*D)'
 
-errs, errs_free, full_x_hist, B = DA_SSA.ETKF_SSA(copy(x_hist), rossler, R, m, tree, osc,
-                               low, 20, D, M; H=H, cycles=1000)
+errs, errs_free, full_x_hist, B = DA_SSA.ETKF_SSA(copy(x_hist), rossler, Models.rossler2, R, m, tree, osc,
+                               v, 20, D, M; H=H, cycles=1000)

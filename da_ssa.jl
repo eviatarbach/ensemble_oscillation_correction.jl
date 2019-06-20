@@ -10,9 +10,9 @@ using .Embedding
 using Distributions
 using LinearAlgebra
 
-function ETKF_SSA(E::Array{Float64, 2}, model::Function,
+function ETKF_SSA(E::Array{Float64, 2}, model::Function, model_err::Function,
                   R::Symmetric{Float64, Array{Float64, 2}}, m::Int64, tree, osc,
-                  data, k, D, M; H=I, Δt::Float64=0.1,
+                  pcs, k, D, M; H=I, Δt::Float64=0.1,
                   window::Float64=0.4, cycles::Int64=1000, outfreq=40)
     if H != I
         p, n = size(H)
@@ -29,6 +29,8 @@ function ETKF_SSA(E::Array{Float64, 2}, model::Function,
     x_true = reshape(E', m, 2*(M - 1) + 1, D)[end, M, :]
     x_free = x_true + randn(D)/10
 
+    x_m = mean(E, dims=2)
+
     errs = []
 
     errs_free = []
@@ -38,11 +40,11 @@ function ETKF_SSA(E::Array{Float64, 2}, model::Function,
     for cycle=1:cycles
         y = zeros(p)
         y[1:D] = x_true + rand(obs_err)[1:D]
+        y[D+1:end] = project(tree, (reshape(x_m, 2*(M - 1) + 1, D)[M-1, :]'*pcs)', osc, k, 1)[2, :]
         x_m = mean(E, dims=2)
-        y[D+1:end] = project(tree, reshape(x_m, 2*(M - 1) + 1, D)[M, :], data, osc, k, 1)[2, :]
 
         X = (E .- x_m)/sqrt(m - 1)
-        B = B + X*X'
+        #B = B + X*X'
         Y = (H*E .- H*x_m)/sqrt(m - 1)
         Ω = real((I + Y'*R_inv*Y)^(-1))
         w = Ω*Y'*R_inv*(y - H*x_m)
@@ -60,8 +62,8 @@ function ETKF_SSA(E::Array{Float64, 2}, model::Function,
         for i=1:m
             E_i = E[:, i]
             E_i = reshape(E_i, 2*(M - 1) + 1, D)
-            E_i[M, :] = rk4_inplace(model, E_i[M, :], 0.0, window, Δt)
-            E_i[M+1:end, :] = rk4(model, E_i[M, :], 0.0, window*(M - 1), Δt, 4)
+            #E_i[M, :] = rk4_inplace(model_err, E_i[M, :], 0.0, window, Δt)
+            E_i[M:end, :] = rk4(model_err, E_i[M, :], 0.0, window*M, Δt)[4:4:end, :]
             E_i[1:M-1, :] = reshape(x_hist'[m, :], M - 1, D)
             E_i = reshape(E_i, D*(2*(M - 1) + 1))
             E[:, i] = E_i

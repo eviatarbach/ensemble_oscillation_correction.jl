@@ -11,7 +11,7 @@ using LinearAlgebra
 
 #addprocs()
 
-function ETKF(E::Array{Float64, 2}, model::Function,
+function ETKF(E::Array{Float64, 2}, model::Function, model_err::Function,
               R::Symmetric{Float64, Array{Float64, 2}}, m::Int64;
               H=I, Δt::Float64=0.1, window::Float64=1.0, cycles::Int64=100)
     if H != I
@@ -50,7 +50,7 @@ function ETKF(E::Array{Float64, 2}, model::Function,
         append!(errs_free, sqrt(mean((x_free .- x_true).^2)))
         append!(x_hist, mean(E, dims=2))
 
-        E = hcat(map((col)->rk4_inplace(model, col, 0.0, window, Δt), E[:, i] for i=1:m)...)
+        E = hcat(map((col)->rk4_inplace(model_err, col, 0.0, window, Δt), E[:, i] for i=1:m)...)
 
         x_true = rk4_inplace(model, x_true, 0.0, window, Δt)
         x_free = rk4_inplace(model, x_free, 0.0, window, Δt)

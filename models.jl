@@ -94,4 +94,32 @@ function rossler(t, u)
    return du
 end
 
+function rossler2(t, u)
+   n = 1
+   α = 0.15
+   c = 0.01
+   du = zeros(3*n)
+   for j=1:n
+      x, y, z = u[(j - 1)*3 + 1:(j - 1)*3 + 3]
+      ω = 1 + 0.02*(j - 1)
+      du[(j - 1)*3 + 1] = -ω*y - z
+      if j == 1
+         ym1 = y
+      else
+         ym1 = u[(j - 2)*3 + 2]
+      end
+      if j == n
+         yp1 = y
+      else
+         yp1 = u[j*3 + 2]
+      end
+      du[(j - 1)*3 + 2] = ω*x + α*y + c*(yp1 - 2*y + ym1)
+      du[(j - 1)*3 + 3] = 0.1 + z*(x - 8.5)
+   end
+   return du
+end
+
+function osc(u, t)
+   du = cos.(t).*sin.(u.*[1, 2, 3])
+end
 end
