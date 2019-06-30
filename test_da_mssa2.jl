@@ -25,11 +25,10 @@ using .Integrators
 #                            cycles=1000, H=I)
 
 M = 30
-D = 9
-u0 = zeros(D)
-y = rk4(Models.rossler, u0, 0., 15000.0, 0.1)
-low = y[5001:4:end, :]
-EW, EV, X = mssa(low, 30)
+D = 4
+u0 = randn(D)
+y = rk4(Models.pendulum, u0, 0., 15000.0, 0.1)[5000:5:end, :]
+EW, EV, X = mssa(y, 30)
 T = obs_operator(EV, M, D, 1) + obs_operator(EV, M, D, 2)
 
 p = D + D  # obs. of model variables + obs. of D channels
@@ -47,32 +46,32 @@ H[D+1:end, :] = T'
 #y = H*x
 
 # 20 seems to be best k
-k = 30
+k = 5
 r = Embedding.reconstruct(X, EV, M, D, 1:2);
 osc = sum(r[1:2, :, :], dims=1)[1, :, :]
 
-pcs = 6
+pcs = 2
 _, _, v = svd(osc)
 v = v[:, 1:pcs]
 tree = KDTree(copy((osc*v)'))
 
-R = Symmetric(diagm(0 => vcat([0.4, 0.4, 0.02, 0.4, 0.4, 0.02, 0.4, 0.4, 0.02],
-                              [1.37347, 1.50732, 0.0418446, 1.52881, 1.45126, 0.0341105, 1.58983, 1.2225, 0.0386358])))
+R = Symmetric(diagm(0 => vcat(1.0*ones(4),
+                              1e6*[0.0173403, 0.0375418, 1.40342, 1.27895])))
 # #project(tree, low[100, :], low, osc, k, 100)
 #
 m = 20
-x0 = low[end, :]
-E = Integrators.rk4(Models.rossler2, x0, 0.0, 0.4*((2*(M - 1) + 1)*D + m), 0.1, 4)'
+x0 = y[end, :]
+E = Integrators.rk4(Models.pendulum2, x0, 0.0, 0.5*((2*(M - 1) + 1)*D + m), 0.1, 5)'
 
 x_hist = zeros(m, 2*(M - 1) + 1, D)
 
 # #x_hist = reshape(x_hist, m, 2*(M - 1) + 1, D)
-dist = MvNormal(zeros(D), diagm(0=>[0.4, 0.4, 0.02, 0.4, 0.4, 0.02, 0.4, 0.4, 0.02]))
+dist = MvNormal(zeros(D), diagm(0=>0.005*ones(D)))
 for i=1:m
     x_hist[i, :, :] = E[:, 1:1+(2*(M - 1) + 1) - 1]' + rand(dist, 2*(M - 1) + 1)'
     #x_hist[i, :, :] = E[:, i:i+(2*(M - 1) + 1) - 1]'
 end
 x_hist = reshape(x_hist, m, (2*(M - 1) + 1)*D)'
 
-errs, errs_free, full_x_hist, B = DA_SSA.ETKF_SSA(copy(x_hist), Models.rossler, Models.rossler2, R, m, tree, osc,
-                               v, 20, D, M; H=H, cycles=1000)
+errs, errs_free, full_x_hist, B = DA_SSA.ETKF_SSA(copy(x_hist), Models.pendulum, Models.pendulum2, R, m, tree, osc,
+                               v, k, D, M; window=0.5, outfreq=5, H=H, cycles=1000)

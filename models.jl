@@ -70,9 +70,9 @@ function ferrari(t, u)
 end
 
 function rossler(t, u)
-   n = 1
+   n = 3
    α = 0.15
-   c = 0.01
+   c = 0.2
    du = zeros(3*n)
    for j=1:n
       x, y, z = u[(j - 1)*3 + 1:(j - 1)*3 + 3]
@@ -95,13 +95,13 @@ function rossler(t, u)
 end
 
 function rossler2(t, u)
-   n = 1
+   n = 3
    α = 0.15
-   c = 0.01
+   c = 0.2
    du = zeros(3*n)
    for j=1:n
       x, y, z = u[(j - 1)*3 + 1:(j - 1)*3 + 3]
-      ω = 1 + 0.02*(j - 1)
+      ω = 1.2 + 0.02*(j - 1)
       du[(j - 1)*3 + 1] = -ω*y - z
       if j == 1
          ym1 = y
@@ -119,7 +119,62 @@ function rossler2(t, u)
    return du
 end
 
-function osc(u, t)
+function osc(t, u)
    du = cos.(t).*sin.(u.*[1, 2, 3])
 end
+
+function kuramoto(t, u)
+   K = 0.1
+   N = 9
+   du = zeros(N)
+
+   ω = 0.1 .+ 0.02*(1:N)
+
+   for i=1:N
+      du[i] = ω[i] + (K/N)*sum([sin(u[j] - u[i]) for j=1:N])
+   end
+
+   #du = ω .+ (K/N)*sum(sin(u*ones(1, N)-(ones(N, 1)*u')), dims=1)'
+
+   return du
+end
+
+function kuramoto2(t, u)
+   K = 0.6
+   N = 9
+   du = zeros(N)
+
+   ω = 0.1 .+ 0.022*(1:N)
+
+   for i=1:N
+      du[i] = ω[i] + (K/N)*sum([sin(u[j] - u[i]) for j=1:N])
+   end
+
+   #du = ω .+ (K/N)*sum(sin(u*ones(1, N)-(ones(N, 1)*u')), dims=1)'
+
+   return du
+end
+
+function pendulum(t, u)
+   x, v, y, u2 = u
+   α = 1.0
+   du = zeros(4)
+   du[1] = v - x
+   du[2] = y - sin(α*(x + y))
+   du[3] = u2
+   du[4] = -y
+   return du
+end
+
+function pendulum2(t, u)
+   x, v, y, u2 = u
+   α = 1.1
+   du = zeros(4)
+   du[1] = v - x
+   du[2] = y - sin(α*(x + y) + 0.4)
+   du[3] = u2
+   du[4] = -y
+   return du
+end
+
 end

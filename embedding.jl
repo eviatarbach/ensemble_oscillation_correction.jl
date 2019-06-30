@@ -5,6 +5,7 @@ export mssa, reconstruct, transform, project, obs_operator
 using LinearAlgebra
 using ToeplitzMatrices
 using NearestNeighbors
+using Statistics
 
 function mssa(x::Array{Float64, 2}, M::Int64)
    N, D = size(x)
@@ -140,6 +141,21 @@ function obs_operator(EV, M, D, k)
    n = (M - 1)*2 + 1
    A = diagm(0 => ones(n*D))
    return vcat([transform(reshape(A[:, i], n, D), M, EV, M, D, k) for i=1:n*D]...)
+end
+
+function estimate_errs(osc, tree, data, pcs, max_k=30)
+   N, D = size(data)
+
+   errs = []
+   for k=2:max_k
+      errsk = []
+      for i=1:100
+         ii = rand(1:N-1)
+         append!(errsk, (osc[ii+1, :] - project(tree, (data[ii, :]'*pcs)', osc, k, 1)[2, :]).^2)
+      end
+      append!(errs, mean(reshape(errsk, D, 100), dims=2))
+   end
+   return reshape(errs, D, :)'
 end
 
 end
