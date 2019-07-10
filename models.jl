@@ -168,13 +168,43 @@ end
 
 function pendulum2(t, u)
    x, v, y, u2 = u
-   α = 1.1
+   α = 1.05
    du = zeros(4)
    du[1] = v - x
-   du[2] = y - sin(α*(x + y) + 0.4)
+   du[2] = y - sin(α*(x + y) + 0.3)
    du[3] = u2
    du[4] = -y
    return du
 end
 
+function harmonic(t, u)
+   n = 12
+   n_osc = 4
+   du = zeros(2*n + n_osc)
+   ω = 0.5 .+ 0.02*(1:n)
+   for i=0:n-1
+      du[2*i + 1] = -ω[i + 1]*u[2*i + 2]
+      du[2*i + 2] = u[2*i + 1]
+   end
+   for i=1:n_osc
+      du[2*n + i] = sum(du[j] for j=2*((i-1)*round(Int64, n/n_osc) + 1:i*round(Int64, n/n_osc)))
+   end
+   return du
+end
+
+function harmonic2(t, u)
+   du = zeros(8)
+   ω = [i for i in (0.5 .+ 0.1*(1:4))]
+   #ω[2] = ω[2] + 0.01
+   ω[4] = ω[4] - 0.01
+   du[1] = -ω[1]*u[2]
+   du[2] = u[1]
+   du[3] = -ω[2]*u[4]
+   du[4] = u[3]
+   du[5] = -ω[3]*u[6]
+   du[6] = u[5]
+   du[7] = -ω[4]*u[8]
+   du[8] = u[7]
+   return du
+end
 end

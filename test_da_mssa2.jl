@@ -25,11 +25,11 @@ using .Integrators
 #                            cycles=1000, H=I)
 
 M = 30
-D = 4
-u0 = randn(D)
-y = rk4(Models.pendulum, u0, 0., 15000.0, 0.1)[5000:5:end, :]
+D = 8
+u0 = ones(8)
+y = rk4(Models.harmonic, u0, 0., 15000.0, 0.1)[5000:5:end, :]
 EW, EV, X = mssa(y, 30)
-T = obs_operator(EV, M, D, 1) + obs_operator(EV, M, D, 2)
+T = obs_operator(EV, M, D, 1) + obs_operator(EV, M, D, 2) + obs_operator(EV, M, D, 3) + obs_operator(EV, M, D, 4)
 
 p = D + D  # obs. of model variables + obs. of D channels
 n = (2*(M - 1) + 1)*D  # M - 1 past and M - 1 future states, + present
@@ -45,33 +45,40 @@ H[D+1:end, :] = T'
 #x = reshape(low[1:1+58, :], 177, 1)
 #y = H*x
 
-# 20 seems to be best k
-k = 5
-r = Embedding.reconstruct(X, EV, M, D, 1:2);
-osc = sum(r[1:2, :, :], dims=1)[1, :, :]
-
+r = Embedding.reconstruct(X, EV, M, D, 1:4);
+osc = sum(r[1:4, :, :], dims=1)[1, :, :]
 pcs = 2
+_, _, v = svd(osc)
+v = v[:, 1:pcs]
+tree = KDTree(copy((osc[10000:end, :]*v)'))
+k = 10
+obs_errs = Embedding.estimate_errs(osc, tree, y[1:10000, :], v)[k + 1, :]
+
 _, _, v = svd(osc)
 v = v[:, 1:pcs]
 tree = KDTree(copy((osc*v)'))
 
-R = Symmetric(diagm(0 => vcat(1.0*ones(4),
-                              1e6*[0.0173403, 0.0375418, 1.40342, 1.27895])))
+R = Symmetric(diagm(0 => vcat(0.1*ones(D),
+                              var(osc, dims=1)[1, :])))#convert(Array{Float64}, obs_errs))))
 # #project(tree, low[100, :], low, osc, k, 100)
 #
 m = 20
 x0 = y[end, :]
-E = Integrators.rk4(Models.pendulum2, x0, 0.0, 0.5*((2*(M - 1) + 1)*D + m), 0.1, 5)'
+E = Integrators.rk4(Models.harmonic2, x0, 0.0, 0.5*((2*(M - 1) + 1)*D + m), 0.1, 5)'
 
 x_hist = zeros(m, 2*(M - 1) + 1, D)
 
 # #x_hist = reshape(x_hist, m, 2*(M - 1) + 1, D)
-dist = MvNormal(zeros(D), diagm(0=>0.005*ones(D)))
+dist = MvNormal(zeros(D), diagm(0=>0.0005*ones(D)))
 for i=1:m
     x_hist[i, :, :] = E[:, 1:1+(2*(M - 1) + 1) - 1]' + rand(dist, 2*(M - 1) + 1)'
     #x_hist[i, :, :] = E[:, i:i+(2*(M - 1) + 1) - 1]'
 end
 x_hist = reshape(x_hist, m, (2*(M - 1) + 1)*D)'
 
-errs, errs_free, full_x_hist, B = DA_SSA.ETKF_SSA(copy(x_hist), Models.pendulum, Models.pendulum2, R, m, tree, osc,
-                               v, k, D, M; window=0.5, outfreq=5, H=H, cycles=1000)
+x0 = E[:, M]
+oracle = rk4(Models.harmonic, x0, -14.5, 514.5, 0.1, 5)
+osc2 = vcat([sum(Embedding.transform(oracle, i, EV, M, D, 1:2), dims=1) for i=30:1029]...)
+
+errs, errs_free, full_x_hist, x_true_hist, x_free_hist, B = DA_SSA.ETKF_SSA(copy(x_hist), Models.harmonic, Models.harmonic2, R, m, tree, osc,
+                               v, k, D, M, osc2; window=0.5, outfreq=5, H=H, cycles=1000)

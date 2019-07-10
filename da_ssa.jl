@@ -12,7 +12,7 @@ using LinearAlgebra
 
 function ETKF_SSA(E::Array{Float64, 2}, model::Function, model_err::Function,
                   R::Symmetric{Float64, Array{Float64, 2}}, m::Int64, tree, osc,
-                  pcs, k, D, M; H=I, Δt::Float64=0.1,
+                  pcs, k, D, M, oracle; H=I, Δt::Float64=0.1,
                   window::Float64=0.4, cycles::Int64=1000, outfreq=40)
     if H != I
         p, n = size(H)
@@ -21,6 +21,8 @@ function ETKF_SSA(E::Array{Float64, 2}, model::Function, model_err::Function,
     end
 
     full_x_hist = []
+    x_true_hist = []
+    x_free_hist = []
     x_hist = reshape(reshape(E', m, 2*(M - 1) + 1, D)[:, 1:(M-1), :], m, D*(M-1))'
 
     R_inv = inv(R)
@@ -41,8 +43,9 @@ function ETKF_SSA(E::Array{Float64, 2}, model::Function, model_err::Function,
         println(cycle)
         y = zeros(p)
         y[1:D] = x_true + rand(obs_err)[1:D]
-        y[D+1:end] = project(tree, (reshape(x_m, 2*(M - 1) + 1, D)[M-1, :]'*pcs)', osc, k, 1)[2, :]
         x_m = mean(E, dims=2)
+        #y[D+1:end] = project(tree, (reshape(x_m, 2*(M - 1) + 1, D)[M-1, :]'*pcs)', osc, k, 1)[2, :]
+        y[D+1:end] = oracle[cycle, :]
 
         X = (E .- x_m)/sqrt(m - 1)
         #B = B + X*X'
@@ -70,10 +73,12 @@ function ETKF_SSA(E::Array{Float64, 2}, model::Function, model_err::Function,
             E[:, i] = E_i
         end
 
+        append!(x_true_hist, x_true)
+        append!(x_free_hist, x_free)
         x_true = rk4_inplace(model, x_true, 0.0, window, Δt)
         x_free = rk4_inplace(model_err, x_free, 0.0, window, Δt)
     end
-    return errs, errs_free, full_x_hist, B
+    return errs, errs_free, reshape(full_x_hist, D, :)', reshape(x_true_hist, D, :)', reshape(x_free_hist, D, :)', B
 end
 
 end
