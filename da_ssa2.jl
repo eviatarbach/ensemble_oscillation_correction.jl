@@ -38,7 +38,7 @@ function ETKF(E::Array{Float64, 2}, model::Function, model_err::Function,
     for cycle=1:cycles
         println(cycle)
         y = zeros(p)
-        y[1:D] = (H*x_true + rand(obs_err))[1:D]
+        y[1:3] = (H*x_true + rand(obs_err))[1:3]
         x_m = mean(E, dims=2)[:, 1]
         #proj = project(tree, (x_m'*pcs)', osc, k, 1)[2, :]
         if cycle == 1
@@ -46,7 +46,7 @@ function ETKF(E::Array{Float64, 2}, model::Function, model_err::Function,
         else
             x_old = x_hist[max(1, cycle - ave_window - 1):(cycle - 1), :]'
         end
-        y[D+1:end] = oracle[cycle, :]
+        y[4:6] = oracle[cycle, :]
         #y[D+1:end] = mean(x_old, dims=2) + proj
 
         X = (E .- x_m)/sqrt(m - 1)
