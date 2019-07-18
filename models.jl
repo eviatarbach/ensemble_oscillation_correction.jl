@@ -101,7 +101,7 @@ function rossler2(t, u)
    du = zeros(3*n)
    for j=1:n
       x, y, z = u[(j - 1)*3 + 1:(j - 1)*3 + 3]
-      ω = 1 + 0.02*(j - 1)
+      ω = 1.01 + 0.02*(j - 1)
       du[(j - 1)*3 + 1] = -ω*y - z
       if j == 1
          ym1 = y
@@ -178,32 +178,24 @@ function pendulum2(t, u)
 end
 
 function harmonic(t, u)
-   n = 12
-   n_osc = 3
-   du = zeros(2*n + n_osc)
+   n = 3
+   du = zeros(2*n)
    ω = 0.5 .+ 0.02*(1:n)
    for i=0:n-1
       du[2*i + 1] = -ω[i + 1]*u[2*i + 2]
       du[2*i + 2] = u[2*i + 1]
    end
-   for i=1:n_osc
-      du[2*n + i] = sum(du[j] for j=2*((i-1)*round(Int64, n/n_osc) + 1:i*round(Int64, n/n_osc)))
-   end
    return du
 end
 
 function harmonic2(t, u)
-   n = 12
-   n_osc = 3
-   du = zeros(2*n + n_osc)
+   n = 3
+   du = zeros(2*n)
    ω = [j for j in (0.5 .+ 0.02*(1:n))]
-   ω[4] = ω[4] - 0.001
+   ω[3] = ω[3] - 0.01
    for i=0:n-1
       du[2*i + 1] = -ω[i + 1]*u[2*i + 2]
       du[2*i + 2] = u[2*i + 1]
-   end
-   for i=1:n_osc
-      du[2*n + i] = sum(du[j] for j=2*((i-1)*round(Int64, n/n_osc) + 1:i*round(Int64, n/n_osc)))
    end
    return du
 end

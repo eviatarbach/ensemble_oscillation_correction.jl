@@ -28,7 +28,7 @@ function ETKF_SSA(E::Array{Float64, 2}, model::Function, model_err::Function,
     obs_err = MvNormal(zeros(p), R)
 
     x_true = E[:, end]
-    x_free = x_true + randn(D)/10
+    x_free = x_true + randn(D)/5
 
     errs = []
 
@@ -52,19 +52,23 @@ function ETKF_SSA(E::Array{Float64, 2}, model::Function, model_err::Function,
         append!(errs, err)
         append!(errs_free, sqrt(mean((x_free .- x_true).^2)))
 
+        x_hist = reshape(cat(reshape(x_hist', m, M - 1, D)[:, 2:end, :], reshape(E', m, 1, D), dims=2), m, D*(M-1))'
+
         for i=1:m
             curr_osc = zeros(2*(M - 1) + 1, D)
-            curr_osc[M:end, :] = rk4(model_err, E[:, i], 0.0, window*M, Δt, outfreq)
+            curr_osc[M+1:end, :] = rk4(model_err, E[:, i], 0.0, window*(M-1), Δt, outfreq)
+            curr_osc[M, :] = E[:, i]
             curr_osc[1:M-1, :] = reshape(x_hist'[i, :], M - 1, D)
             curr_osc = reshape(curr_osc, D*(2*(M - 1) + 1))
-            E[:, i] -= obs_operator_err'*curr_osc
-            E[:, i] += oracle[cycle, :]
+            E[:, i] = rk4(model_err, E[:, i], 0.0, window, Δt, outfreq)
+#            E[:, i] -= obs_operator_err'*curr_osc
+#            E[:, i] += oracle[cycle, :]
         end
 
         x_true = rk4_inplace(model, x_true, 0.0, window, Δt)
         x_free = rk4_inplace(model_err, x_free, 0.0, window, Δt)
     end
-    return errs, errs_free, x_hist
+    return errs, errs_free, full_x_hist
 end
 
 end
