@@ -178,7 +178,7 @@ function pendulum2(t, u)
 end
 
 function harmonic(t, u)
-   n = 3
+   n = 4
    du = zeros(2*n)
    ω = 0.5 .+ 0.02*(1:n)
    for i=0:n-1
@@ -189,7 +189,7 @@ function harmonic(t, u)
 end
 
 function harmonic2(t, u)
-   n = 3
+   n = 4
    du = zeros(2*n)
    ω = [j for j in (0.5 .+ 0.02*(1:n))]
    ω[3] = ω[3] - 0.01

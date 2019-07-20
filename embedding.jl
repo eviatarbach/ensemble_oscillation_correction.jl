@@ -1,6 +1,6 @@
 module Embedding
 
-export mssa, reconstruct, transform, project, obs_operator
+export mssa, reconstruct, transform, project, obs_operator, transform1
 
 using LinearAlgebra
 using ToeplitzMatrices
@@ -122,6 +122,18 @@ function transform(x, n, EV::Array{Float64, 2}, M, D, ks)
       ek = reshape(EV[:, k], M, D)
       for d=1:D
          R[ik, d] = 1/M*sum([sum([sum([x[n - m + mp, dp]*ek[mp, dp] for mp=1:M]) for dp=1:D])*ek[m, d] for m=1:M])
+      end
+   end
+   return R
+end
+
+function transform1(x, EV::Array{Float64, 2}, M, D, ks)
+   R = zeros(length(ks), D)
+
+   for (ik, k) in enumerate(ks)
+      ek = reshape(EV[:, k], M, D)
+      for d=1:D
+         R[ik, d] = sum([sum([x[mp, dp]*ek[mp, dp] for mp=1:M]) for dp=1:D])*ek[1, d]
       end
    end
    return R
