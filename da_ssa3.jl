@@ -12,7 +12,7 @@ using LinearAlgebra
 
 function ETKF_SSA(E::Array{Float64, 2}, model::Function, model_err::Function,
                   R::Symmetric{Float64, Array{Float64, 2}}, m::Int64, tree, osc,
-                  pcs, k, D, M, oracle, obs_operator_err, x_hist; H=I, Δt::Float64=0.1,
+                  pcs, k, D, M, oracle, obs_operator_err; H=I, Δt::Float64=0.1,
                   window::Float64=0.4, cycles::Int64=1000, outfreq=40)
     if H != I
         p, n = size(H)
@@ -53,17 +53,15 @@ function ETKF_SSA(E::Array{Float64, 2}, model::Function, model_err::Function,
         append!(errs_free, sqrt(mean((x_free .- x_true).^2)))
 
         for i=1:m
-            #curr_osc = zeros(2*(M - 1) + 1, D)
-            #curr_osc[M+1:end, :] = rk4(model_err, E[:, i], 0.0, window*(M-1), Δt, outfreq)
-            #curr_osc[M, :] = E[:, i]
-            #curr_osc[1:M-1, :] = reshape(x_hist'[i, :], M, D)[1:(M-1), :]
-            #curr_osc = reshape(curr_osc, D*(2*(M - 1) + 1))
+            curr_osc = zeros(2*(M - 1) + 1, D)
+            curr_osc[M + 1:end, :] = rk4(model_err, E[:, i], 0.0, window*(M-1), Δt, outfreq)
+            curr_osc[M, :] = E[:, i]
+            curr_osc[1:(M - 1), :] = reverse(rk4(model_err, E[:, i], 0.0, -window*(M-1), -Δt, outfreq), dims=1)
+            curr_osc = reshape(curr_osc, D*(2*(M - 1) + 1))
+            E[:, i] = E[:, i] - obs_operator_err'*curr_osc + randn(D)/10
+            E[:, i] = E[:, i] + oracle[cycle, :]
             E[:, i] = rk4(model_err, E[:, i], 0.0, window, Δt, outfreq)
-            #E[:, i] -= obs_operator_err'*curr_osc
-            #E[:, i] += oracle[cycle, :]
         end
-
-        x_hist = reshape(cat(reshape(x_hist', m, M, D)[:, 2:end, :], reshape(E', m, 1, D), dims=2), m, D*M)'
 
         x_true = rk4_inplace(model, x_true, 0.0, window, Δt)
         x_free = rk4_inplace(model_err, x_free, 0.0, window, Δt)

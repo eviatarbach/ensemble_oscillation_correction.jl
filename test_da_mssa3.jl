@@ -13,13 +13,12 @@ using .Integrators
 
 M = 30
 D = 8
-n_modes = 6
+n_modes = 4
 
 u0 = ones(D)
-y = rk4(Models.harmonic2, u0, 0., 15000.0, 0.1)
+y = rk4(Models.harmonic, u0, 0., 15000.0, 0.1)
 low = y[5001:4:end, :]
-EW, EV, X = mssa(low, 30)
-T = sum(obs_operator(EV, M, D, i) for i=1:n_modes)
+EW1, EV1, X1 = mssa(low, 30)
 
 p = D
 n = D
@@ -31,30 +30,30 @@ m = 20
 x0 = low[end, :]
 E = Integrators.rk4(Models.harmonic2, x0, 0.0, 0.4*((M - 1)*D + m), 0.1, 4)'
 
-x_hist = zeros(m, M, D)
-
 dist = MvNormal(zeros(D), diagm(0=>0.01*ones(D)))
-for i=1:m
-    x_hist[i, :, :] = E[:, 1:M]' + rand(dist, M)'
-    #x_hist[i, :, :] = E[:, i:i+(2*(M - 1) + 1) - 1]'
-end
-x_hist = reshape(x_hist, m, M*D)'
 
 u0 = ones(D)
-y = rk4(Models.harmonic, u0, 0., 15000.0, 0.1)
+y = rk4(Models.harmonic2, u0, 0., 15000.0, 0.1)
 low = y[5001:4:end, :]
-EW, EV, X = mssa(low, 30)
+EW2, EV2, X2 = mssa(low, 30)
 
 x0 = E[:, M]
-oracle = vcat(reverse(rk4(Models.harmonic, x0, 0.0, -11.6, -0.1, 4), dims=1),
-              x0', rk4(Models.harmonic, x0, 0.0, 4011.6, 0.1, 4))
-osc2 = vcat([sum(Embedding.transform(oracle, i, EV, M, D, 1:n_modes), dims=1) for i=30:10029]...)
 
-E = hcat([E[:, M] for i=1:20]...)
+oracle1 = oracle1 = vcat(reverse(rk4(Models.harmonic, x0, 0.0, -11.6, -0.1, 4), dims=1), x0', rk4(Models.harmonic, x0, 0.0, 411.6, 0.1, 4))
+EW3, EV3, X3 = mssa(oracle1, 30)
+osc1 = sum(Embedding.reconstruct(X3, EV1, M, D, 1:n_modes), dims=1)[1, 30:end, :]
+
+#oracle2 = vcat(x0', rk4(Models.harmonic2, x0, 0.0, 400.0, 0.1, 4))
+#EW3, EV3, X3 = mssa(oracle2, 30)
+#osc2 = sum(Embedding.reconstruct(X3, EV1, M, D, 1:n_modes), dims=1)[1, :, :]
+
+E = hcat([x0 for i=1:20]...)
 for i=1:m
     E[:, i] = E[:, i] + rand(dist, 1)
 end
 
-errs, errs_free, full_x_hist = DA_SSA3.ETKF_SSA(E, Models.harmonic, Models.harmonic2, R, m, 0, 0,
-                               0, 20, D, M, osc2, T, copy(x_hist); window=0.4, H=H, outfreq=4,
-                               cycles=10000)
+T = sum(Embedding.obs_operator(EV1, M, D, i) for i=1:n_modes)
+
+errs, errs_free, full_x_hist = DA_SSA3.ETKF_SSA(copy(E), Models.harmonic, Models.harmonic2, R, m, 0, 0,
+                               0, 20, D, M, osc1, T; window=0.4, H=H, outfreq=4,
+                               cycles=1000)
