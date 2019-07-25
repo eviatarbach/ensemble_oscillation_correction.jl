@@ -103,7 +103,7 @@ function rossler2(t, u)
    du = zeros(3*n)
    for j=1:n
       x, y, z = u[(j - 1)*3 + 1:(j - 1)*3 + 3]
-      ω = 1.1 + 0.02*(j - 1)
+      ω = 1.01 + 0.02*(j - 1)
 
       du[(j - 1)*3 + 1] = -ω*y - z
       if j == 1
