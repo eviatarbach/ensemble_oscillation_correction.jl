@@ -36,8 +36,8 @@ x0 = Integrators.rk4_inplace(model_err, low[end, :], 0.0, 30*Δt*outfreq, Δt)
 
 dist = MvNormal(zeros(D), diagm(0=>0.01*ones(D)))
 
-oracle1 = oracle1 = vcat(reverse(rk4(model, x0, 0.0, -(M - 1)*Δt*outfreq, -Δt, outfreq), dims=1),
-                         x0', rk4(model, x0, 0.0, (cycles + M - 1)*Δt*outfreq, Δt, outfreq))
+oracle1 = vcat(reverse(rk4(model, x0, 0.0, -(M - 1)*Δt*outfreq, -Δt, outfreq), dims=1),
+               x0', rk4(model, x0, 0.0, (cycles + M - 1)*Δt*outfreq, Δt, outfreq))
 EW3, EV3, X3 = mssa(oracle1, M)
 osc1 = sum(Embedding.reconstruct(X3, EV1, M, D, 1:n_modes), dims=1)[1, M:end, :]
 

@@ -2,10 +2,12 @@ module Models
 
 export lorenz, peña, ferrari, rossler
 
-function lorenz(du, u, p, t)
+function lorenz(t, u)
+ du = zeros(3)
  du[1] = 10.0*(u[2]-u[1])
  du[2] = u[1]*(28.0-u[3]) - u[2]
  du[3] = u[1]*u[2] - (8/3)*u[3]
+ return du
 end
 
 function peña(t, u)
@@ -192,8 +194,8 @@ function harmonic2(t, u)
    n = 4
    du = zeros(2*n)
    ω = [j for j in (0.5 .+ 0.02*(1:n))]
-#   ω = ω .- 0.01
-   ω[3] = ω[3] + 0.01
+   ω = ω .- 0.01
+#   ω[3] = ω[3] + 0.01
    for i=0:n-1
       du[2*i + 1] = -ω[i + 1]*u[2*i + 2]
       du[2*i + 2] = u[2*i + 1]
