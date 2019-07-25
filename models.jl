@@ -72,7 +72,7 @@ function ferrari(t, u)
 end
 
 function rossler(t, u)
-   n = 3
+   n = 6
    α = 0.15
    c = 0.2
    du = zeros(3*n)
@@ -97,7 +97,7 @@ function rossler(t, u)
 end
 
 function rossler2(t, u)
-   n = 3
+   n = 6
    α = 0.15
    c = 0.2
    du = zeros(3*n)

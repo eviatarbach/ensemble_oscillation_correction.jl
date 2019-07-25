@@ -66,16 +66,15 @@ function ETKF_SSA(E::Array{Float64, 2}, model::Function, model_err::Function,
         append!(errs_free, sqrt(mean((x_free .- x_true).^2)))
 
         for i=1:m
+            E[:, i] = rk4(model_err, E[:, i], 0.0, window, Δt, outfreq)
             if psrm
                 #curr_osc = zeros(2*(M - 1) + 1, D)
                 #curr_osc[M + 1:end, :] = rk4(model_err, E[:, i], 0.0, window*(M-1), Δt, outfreq)
                 #curr_osc[M, :] = E[:, i]
                 #curr_osc[1:(M - 1), :] = reverse(rk4(model_err, E[:, i], 0.0, -window*(M-1), -Δt, outfreq), dims=1)
                 #curr_osc = reshape(curr_osc, D*(2*(M - 1) + 1))
-                E[:, i] = E[:, i] - r2[knn(tree2, E[:, i], 1)[1][1], :]
-                E[:, i] = E[:, i] + r1[knn(tree1, E[:, i], 1)[1][1], :]
+                E[:, i] = E[:, i] - r2[knn(tree2, E[:, i], 1)[1][1], :] + r1[knn(tree1, E[:, i], 1)[1][1], :]
             end
-            E[:, i] = rk4(model_err, E[:, i], 0.0, window, Δt, outfreq)
         end
 
         x_true = rk4_inplace(model, x_true, 0.0, window, Δt)
