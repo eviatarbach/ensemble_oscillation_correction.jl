@@ -12,7 +12,7 @@ using .Models
 using .Integrators
 
 M = 30
-D = 18
+D = 9
 n_modes = 2
 model = Models.rossler
 model_err = Models.rossler2
@@ -58,8 +58,8 @@ T = sum(Embedding.obs_operator(EV1, M, D, i) for i=1:n_modes)
 
 errs, errs_free, full_x_hist = DA_SSA3.ETKF_SSA(copy(E), model, model_err, R, m, 0, 0,
                                0, 20, D, M, osc1, T, r1, r2, tree1, tree2; window=outfreq*Δt, H=H, outfreq=outfreq,
-                               cycles=cycles)
+                               cycles=cycles, inflation=1.0)
 
 errs_no, _, full_x_hist = DA_SSA3.ETKF_SSA(copy(E), model, model_err, R, m, 0, 0,
                               0, 20, D, M, osc1, T, r1, r2, tree1, tree2; window=outfreq*Δt, H=H, outfreq=outfreq,
-                              cycles=cycles, psrm=false)
+                              cycles=cycles, psrm=false, inflation=1.05)
