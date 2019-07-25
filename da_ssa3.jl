@@ -9,10 +9,11 @@ using .Embedding
 
 using Distributions
 using LinearAlgebra
+using NearestNeighbors
 
 function ETKF_SSA(E::Array{Float64, 2}, model::Function, model_err::Function,
                   R::Symmetric{Float64, Array{Float64, 2}}, m::Int64, tree, osc,
-                  pcs, k, D, M, oracle, obs_operator_err; psrm=true, H=I, Δt::Float64=0.1,
+                  pcs, k, D, M, oracle, obs_operator_err, r1, r2, tree1, tree2; psrm=true, H=I, Δt::Float64=0.1,
                   window::Float64=0.4, cycles::Int64=1000, outfreq=40)
     if H != I
         p, n = size(H)
@@ -54,13 +55,13 @@ function ETKF_SSA(E::Array{Float64, 2}, model::Function, model_err::Function,
 
         for i=1:m
             if psrm
-                curr_osc = zeros(2*(M - 1) + 1, D)
-                curr_osc[M + 1:end, :] = rk4(model_err, E[:, i], 0.0, window*(M-1), Δt, outfreq)
-                curr_osc[M, :] = E[:, i]
-                curr_osc[1:(M - 1), :] = reverse(rk4(model_err, E[:, i], 0.0, -window*(M-1), -Δt, outfreq), dims=1)
-                curr_osc = reshape(curr_osc, D*(2*(M - 1) + 1))
-                E[:, i] = E[:, i] - obs_operator_err'*curr_osc + randn(D)/10
-                E[:, i] = E[:, i] + oracle[cycle, :]
+                #curr_osc = zeros(2*(M - 1) + 1, D)
+                #curr_osc[M + 1:end, :] = rk4(model_err, E[:, i], 0.0, window*(M-1), Δt, outfreq)
+                #curr_osc[M, :] = E[:, i]
+                #curr_osc[1:(M - 1), :] = reverse(rk4(model_err, E[:, i], 0.0, -window*(M-1), -Δt, outfreq), dims=1)
+                #curr_osc = reshape(curr_osc, D*(2*(M - 1) + 1))
+                E[:, i] = E[:, i] - r2[knn(tree2, E[:, i], 1)[1][1], :]
+                E[:, i] = E[:, i] + r1[knn(tree1, E[:, i], 1)[1][1], :]
             end
             E[:, i] = rk4(model_err, E[:, i], 0.0, window, Δt, outfreq)
         end
