@@ -12,10 +12,10 @@ using .Models
 using .Integrators
 
 M = 30
-D = 18
-n_modes = 2
-model = Models.rossler
-model_err = Models.rossler2
+D = 9
+n_modes = 3
+model = Models.colpitts
+model_err = Models.colpitts2
 outfreq = 4
 Δt = 0.1
 m = 20
@@ -50,9 +50,9 @@ for i=1:m
 end
 
 errs, errs_free, full_x_hist = DA_SSA3.ETKF_SSA(copy(E), model, model_err, R, m,
-                               20, D, M, r1, r2, tree1, tree2; window=outfreq*Δt, H=H, outfreq=outfreq,
+                               D, M, r1, r2, tree1, tree2; window=outfreq*Δt, H=H, outfreq=outfreq,
                                cycles=cycles, inflation=1.01)
 
 errs_no, _, full_x_hist = DA_SSA3.ETKF_SSA(copy(E), model, model_err, R, m,
-                              20, D, M, r1, r2, tree1, tree2; window=outfreq*Δt, H=H, outfreq=outfreq,
+                              D, M, r1, r2, tree1, tree2; window=outfreq*Δt, H=H, outfreq=outfreq,
                               cycles=cycles, psrm=false, inflation=1.01)

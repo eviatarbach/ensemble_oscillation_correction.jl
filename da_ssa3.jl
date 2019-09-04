@@ -12,7 +12,7 @@ using LinearAlgebra
 using NearestNeighbors
 
 function ETKF_SSA(E::Array{Float64, 2}, model::Function, model_err::Function,
-                  R::Symmetric{Float64, Array{Float64, 2}}, m::Int64, k, D, M,
+                  R::Symmetric{Float64, Array{Float64, 2}}, m::Int64, D, M,
                   r1, r2, tree1, tree2; psrm=true, H=I, Δt::Float64=0.1,
                   window::Float64=0.4, cycles::Int64=1000, outfreq=40,
                   inflation=1.0)
@@ -56,7 +56,7 @@ function ETKF_SSA(E::Array{Float64, 2}, model::Function, model_err::Function,
         append!(errs_free, sqrt(mean((x_free .- x_true).^2)))
 
         for i=1:m
-            E[:, i] = rk4(model_err, E[:, i], 0.0, window, Δt, outfreq)
+            E[:, i] = rk4_inplace(model_err, E[:, i], 0.0, window, Δt)
             if psrm
                 E[:, i] = E[:, i] - r2[knn(tree2, E[:, i], 1)[1][1], :] + r1[knn(tree1, E[:, i], 1)[1][1], :]
             end

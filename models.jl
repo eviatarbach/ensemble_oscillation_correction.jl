@@ -103,7 +103,7 @@ function rossler2(t, u)
    du = zeros(3*n)
    for j=1:n
       x, y, z = u[(j - 1)*3 + 1:(j - 1)*3 + 3]
-      ω = 1.01 + 0.02*(j - 1)
+      ω = 1.05 + 0.02*(j - 1)
 
       du[(j - 1)*3 + 1] = -ω*y - z
       if j == 1
@@ -200,6 +200,52 @@ function harmonic2(t, u)
    for i=0:n-1
       du[2*i + 1] = -ω[i + 1]*u[2*i + 2]
       du[2*i + 2] = u[2*i + 1]
+   end
+   return du
+end
+
+function colpitts(t, u)
+   M = 3
+   p1 = 5.0
+   p2 = 0.0797
+   p3 = [3.0, 3.5, 4.0]
+   p4 = 0.6898
+
+   c21 = 0.8/4
+   c32 = 0.9/4
+   c13 = 1.0/4
+   c = [c21, c32, c13]
+
+   du = zeros(3*M)
+
+   for i=0:M-1
+      x1, x2, x3 = u[i*3 + 1:i*3 + 3]
+      du[3*i + 1] = p1*x2 + c[i + 1]*(u[(3*(i + 1) + 1) % (3*M)] - x1)
+      du[3*i + 2] = -p2*(x1 + x3) - p4*x2
+      du[3*i + 3] = p3[i + 1]*(x2 + 1 - exp(-x1))
+   end
+   return du
+end
+
+function colpitts2(t, u)
+   M = 3
+   p1 = 5.0 + 0.04
+   p2 = 0.0797 - 0.003
+   p3 = [3.0, 3.5, 4.0]
+   p4 = 0.6898
+
+   c21 = 0.8/4
+   c32 = 0.9/4
+   c13 = 1.0/4
+   c = [c21, c32, c13]
+
+   du = zeros(3*M)
+
+   for i=0:M-1
+      x1, x2, x3 = u[i*3 + 1:i*3 + 3]
+      du[3*i + 1] = p1*x2 + c[i + 1]*(u[(3*(i + 1) + 1) % (3*M)] - x1)
+      du[3*i + 2] = -p2*(x1 + x3) - p4*x2
+      du[3*i + 3] = p3[i + 1]*(x2 + 1 - exp(-x1))
    end
    return du
 end
