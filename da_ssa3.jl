@@ -11,11 +11,11 @@ using Distributions
 using LinearAlgebra
 using NearestNeighbors
 
-function ETKF_SSA(E::Array{Float64, 2}, model::Function, model_err::Function,
+function ETKF_SSA(E::Array{Float64, 2}, model, model_err,
                   R::Symmetric{Float64, Array{Float64, 2}}, m::Int64, D, M,
                   r1, r2, tree1, tree2; psrm=true, H=I, Δt::Float64=0.1,
                   window::Float64=0.4, cycles::Int64=1000, outfreq=40,
-                  inflation=1.0)
+                  inflation=1.0, integrator=Integrators.rk4_inplace)
     if H != I
         p, n = size(H)
     else
@@ -30,7 +30,7 @@ function ETKF_SSA(E::Array{Float64, 2}, model::Function, model_err::Function,
     obs_err = MvNormal(zeros(p), R)
 
     x_true = E[:, end]
-    x_free = x_true + randn(D)/5
+    x_free = x_true + randn(D)
 
     errs = []
 
@@ -56,14 +56,14 @@ function ETKF_SSA(E::Array{Float64, 2}, model::Function, model_err::Function,
         append!(errs_free, sqrt(mean((x_free .- x_true).^2)))
 
         for i=1:m
-            E[:, i] = rk4_inplace(model_err, E[:, i], 0.0, window, Δt)
+            E[:, i] = integrator(model_err, E[:, i], 0.0, window, Δt)
             if psrm
                 E[:, i] = E[:, i] - r2[knn(tree2, E[:, i], 1)[1][1], :] + r1[knn(tree1, E[:, i], 1)[1][1], :]
             end
         end
 
-        x_true = rk4_inplace(model, x_true, 0.0, window, Δt)
-        x_free = rk4_inplace(model_err, x_free, 0.0, window, Δt)
+        x_true = integrator(model, x_true, 0.0, window, Δt)
+        x_free = integrator(model_err, x_free, 0.0, window, Δt)
     end
     return errs, errs_free, full_x_hist
 end

@@ -74,7 +74,7 @@ end
 function rossler(t, u)
    n = 6
    α = 0.15
-   c = 0.2
+   c = 0.12
    du = zeros(3*n)
    for j=1:n
       x, y, z = u[(j - 1)*3 + 1:(j - 1)*3 + 3]
@@ -99,7 +99,7 @@ end
 function rossler2(t, u)
    n = 6
    α = 0.15
-   c = 0.2
+   c = 0.12
    du = zeros(3*n)
    for j=1:n
       x, y, z = u[(j - 1)*3 + 1:(j - 1)*3 + 3]
@@ -211,9 +211,9 @@ function colpitts(t, u)
    p3 = [3.0, 3.5, 4.0]
    p4 = 0.6898
 
-   c21 = 0.8/4
-   c32 = 0.9/4
-   c13 = 1.0/4
+   c21 = 0.8
+   c32 = 0.9
+   c13 = 1.0
    c = [c21, c32, c13]
 
    du = zeros(3*M)
@@ -234,9 +234,9 @@ function colpitts2(t, u)
    p3 = [3.0, 3.5, 4.0]
    p4 = 0.6898
 
-   c21 = 0.8/4
-   c32 = 0.9/4
-   c13 = 1.0/4
+   c21 = 0.8
+   c32 = 0.9
+   c13 = 1.0
    c = [c21, c32, c13]
 
    du = zeros(3*M)
@@ -249,4 +249,31 @@ function colpitts2(t, u)
    end
    return du
 end
+
+function elegant(t, u)
+   x, v, y, u = u
+   du = zeros(4)
+   k = 1
+
+   du[1] = v + k*v*u^2
+   du[2] = -x
+   du[3] = u + k*u*v^2
+   du[4] = -y
+
+   return du
+end
+
+function elegant2(t, u)
+   x, v, y, u = u
+   du = zeros(4)
+   k = 1.2
+
+   du[1] = v + k*v*u^2
+   du[2] = -x
+   du[3] = u + k*u*v^2
+   du[4] = -y
+
+   return du
+end
+
 end
