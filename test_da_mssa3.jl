@@ -12,8 +12,8 @@ using .Models
 using .Integrators
 
 M = 30
-D = 100
-modes = 1:4
+D = 128
+modes = 2:5
 model = "true"
 model_err = "false"
 integrator = Integrators.ks_integrate

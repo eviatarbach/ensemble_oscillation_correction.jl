@@ -1,6 +1,6 @@
 module Integrators
 
-using FFTW, Statistics
+using FFTW, Statistics, DSP
 
 export rk4_inplace, rk4
 
@@ -40,64 +40,53 @@ end
 
 function ks_integrate(f, y0::Array{Float64, 1}, t0::Float64,
                   t1::Float64, h::Float64; inplace=true)
-    Q = 100
-    if f == "true"
-        N = 64
+    # Based on https://github.com/jswhit/pyks/blob/master/KS.py
+    L = 16
+    N = 128
+    if f == "false"
+        diffusion = 1.05
     else
-        N = 60
+        diffusion = 1.0
     end
-    nmax = round(Int,t1/h)
-    x = N*(1:Q) / Q
-    u = y0
-    v = fft(u)
-    k = 2π/N*(0.0:Q-1)
-    L = (k.^2 - k.^4) # Fourier Multiples
-    E =  exp.(h*L)
-    E2 = exp.(h*L/2)
-    M = 16 # No. of points for complex means
-    r = exp.(im*π*((1:M) .-0.5)/M)
-    LR = h*L*ones(M)' + ones(Q)*r'
-    QQ = h*real.(mean((exp.(LR/2).-1)./LR, dims=2))[:]
-    f1 = h*real(mean((-4 .-LR+exp.(LR).*(4 .-3*LR+ LR.^2))./LR.^3,dims=2))[:]
-    f2 = h*real(mean((2 .+LR+exp.(LR).*(-2 .+LR))./LR.^3,dims=2))[:]
-    f3 = h*real(mean((-4 .-3*LR-LR.^2+exp.(LR).*(4 .-LR))./LR.^3,dims=2))[:]
-    g = -0.5im*k
+    nmax = round(Int, (t1 - t0)/h)
+
+    k = N*fftfreq(N)[1:(N÷2) + 1]/L  # wave numbers
+
+    ik    = im*k                   # spectral derivative operator
+    lin   = k.^2 - diffusion*k.^4    # Fourier multipliers for linear term
+
+    x = y0
     if !inplace
-        uu = [u]
+        uu = [x]
     end
+    # spectral space variable
+    xspec = rfft(x)
 
-    T = plan_fft(v)
-    Ti = plan_ifft(v)
-    T! = plan_fft!(v)
-    Ti! = plan_ifft!(v)
-    a = Complex.(zeros(Q))
-    b = Complex.(zeros(Q))
-    c = Complex.(zeros(Q))
-    Nv = Complex.(zeros(Q))
-    Na = Complex.(zeros(Q))
-    Nb = Complex.(zeros(Q))
-    Nc = Complex.(zeros(Q))
-
-    for n = 1:nmax
-                          Nv .= g .* (T*real(Ti*v).^2) #.+ cc
-      @.  a  =  E2*v + QQ*Nv
-                         Na .= g .* (T!*real(Ti!*a).^2) #.+ cc
-      @. b  =  E2*v + QQ*Na
-                          Nb .= g.* (T!*real(Ti!*b).^2) #.+ cc
-      @. c  =  E2*a + QQ*(2Nb-Nv)
-      Nc .= g.* (T!*real(Ti!*c).^2) #.+ cc
-      @. v =  E*v + Nv*f1 + 2*(Na+Nb)*f2 + Nc*f3
-
-      u = real(Ti*v)
-      if !inplace
-          push!(uu,u)
-      end
+    # semi-implicit third-order runge kutta update.
+    # ref: http://journals.ametsoc.org/doi/pdf/10.1175/MWR3214.1
+    for i in 1:nmax
+        xspec = rfft(x)
+        xspec_save = copy(xspec)
+        for n in 1:3
+            # compute tendency from nonlinear term.
+            nlterm = -0.5*ik.*rfft(irfft(xspec, 2*length(xspec) - 2).^2)
+            dt = h/(3-(n-1))
+            # explicit RK3 step for nonlinear term
+            xspec = xspec_save + dt*nlterm
+            # implicit trapezoidal adjustment for linear term
+            xspec = (xspec+0.5*lin*dt.*xspec_save)./(1.0.-0.5*lin*dt)
+        end
+        x = irfft(xspec, 2*length(xspec) - 2)
+        if !inplace
+            push!(uu,x)
+        end
     end
     if inplace
-        return u
+        return x
     else
         return hcat(uu...)'
     end
+
 end
 
 end

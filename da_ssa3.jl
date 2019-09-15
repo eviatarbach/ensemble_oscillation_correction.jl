@@ -45,7 +45,8 @@ function ETKF_SSA(E::Array{Float64, 2}, model, model_err,
 
         X = (E .- x_m)/sqrt(m - 1)
         X = x_m .+ inflation*(X .- x_m)
-        #B = B + X*X'
+        B = B*cycle + X*X'
+        B = B/cycle
         Y = (H*E .- H*x_m)/sqrt(m - 1)
         Ω = real((I + Y'*R_inv*Y)^(-1))
         w = Ω*Y'*R_inv*(y - H*x_m)
@@ -58,14 +59,15 @@ function ETKF_SSA(E::Array{Float64, 2}, model, model_err,
         for i=1:m
             E[:, i] = integrator(model_err, E[:, i], 0.0, window, Δt)
             if psrm
-                E[:, i] = E[:, i] - r2[knn(tree2, E[:, i], 1)[1][1], :] + r1[knn(tree1, E[:, i], 1)[1][1], :]
+                inc = -r2[knn(tree2, E[:, i], 1)[1][1], :] + r1[knn(tree1, E[:, i], 1)[1][1], :]
+                E[:, i] = E[:, i] + 0.3*B*inc
             end
         end
 
         x_true = integrator(model, x_true, 0.0, window, Δt)
         x_free = integrator(model_err, x_free, 0.0, window, Δt)
     end
-    return errs, errs_free, full_x_hist
+    return errs, errs_free, B
 end
 
 end
