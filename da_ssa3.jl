@@ -15,7 +15,7 @@ function ETKF_SSA(E::Array{Float64, 2}, model, model_err,
                   R::Symmetric{Float64, Array{Float64, 2}}, m::Int64, D, M,
                   r1, r2, tree1, tree2; psrm=true, H=I, Δt::Float64=0.1,
                   window::Float64=0.4, cycles::Int64=1000, outfreq=40,
-                  inflation=1.0, integrator=Integrators.rk4_inplace)
+                  inflation=1.0, integrator=Integrators.rk4, static=I)
     if H != I
         p, n = size(H)
     else
