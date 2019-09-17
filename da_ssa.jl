@@ -1,4 +1,4 @@
-module DA_SSA3
+module DA_SSA
 
 export ETKF_SSA
 

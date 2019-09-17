@@ -6,11 +6,11 @@ using Distributed
 rmprocs(procs())
 addprocs()
 
-include("da_ssa3.jl")
+include("da_ssa.jl")
 include("embedding.jl")
 @everywhere include("models.jl")
 @everywhere include("integrators.jl")
-using .DA_SSA3
+using .DA_SSA
 using .Embedding
 @everywhere using .Models
 @everywhere using .Integrators
