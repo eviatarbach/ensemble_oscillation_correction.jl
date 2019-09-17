@@ -30,7 +30,7 @@ function ETKF_SSA(E::Array{Float64, 2}, model, model_err,
     obs_err = MvNormal(zeros(p), R)
 
     x_true = E[:, end]
-    x_free = x_true + randn(D)
+    x_free = x_true + randn(D)/5
 
     errs = []
 
@@ -45,7 +45,7 @@ function ETKF_SSA(E::Array{Float64, 2}, model, model_err,
 
         X = (E .- x_m)/sqrt(m - 1)
         X = x_m .+ inflation*(X .- x_m)
-        B = B*cycle + X*X'
+        B = B*(cycle - 1) + X*X'
         B = B/cycle
         Y = (H*E .- H*x_m)/sqrt(m - 1)
         Ω = real((I + Y'*R_inv*Y)^(-1))
@@ -60,7 +60,7 @@ function ETKF_SSA(E::Array{Float64, 2}, model, model_err,
             E[:, i] = integrator(model_err, E[:, i], 0.0, window, Δt)
             if psrm
                 inc = -r2[knn(tree2, E[:, i], 1)[1][1], :] + r1[knn(tree1, E[:, i], 1)[1][1], :]
-                E[:, i] = E[:, i] + 0.3*B*inc
+                E[:, i] = E[:, i] + inc
             end
         end
 

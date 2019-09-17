@@ -3,6 +3,7 @@ using NearestNeighbors
 using Distributions
 using Distributed
 
+rmprocs(procs())
 addprocs()
 
 include("da_ssa3.jl")
@@ -16,7 +17,7 @@ using .Embedding
 
 M = 30
 D = 128
-modes = 1:4
+modes = 1:2
 model = "true"
 model_err = "false"
 integrator = Integrators.ks_integrate
@@ -24,12 +25,12 @@ outfreq = 4
 Δt = 0.25
 m = 20
 cycles = 1000
-
-R = Symmetric(diagm(0 => 0.1*ones(D)))
-obs_err = MvNormal(zeros(D), R/2)
+window = outfreq*Δt
 
 u0 = randn(D)
 y1 = integrator(model, u0, 0., 15000.0, Δt; inplace=false)[5001:outfreq:end, :]
+R = Symmetric(diagm(0 => 0.1*std(y1, dims=1)[1, :]))
+obs_err = MvNormal(zeros(D), R/2)
 y1 = y1 + rand(obs_err, size(y1)[1])'
 y2 = integrator(model_err, u0, 0., 15000.0, Δt; inplace=false)[5001:outfreq:end, :]
 
@@ -57,12 +58,12 @@ for i=1:m
     E[:, i] = E[:, i] + rand(dist, 1)
 end
 
-errs, errs_free, full_x_hist = DA_SSA3.ETKF_SSA(copy(E), model, model_err, R, m,
-                               D, M, r1, r2, tree1, tree2; window=outfreq*Δt,
+errs, errs_free, B = DA_SSA3.ETKF_SSA(copy(E), model, model_err, R, m,
+                               D, M, r1, r2, tree1, tree2; window=window,
                                H=H, outfreq=outfreq, cycles=cycles,
                                inflation=1.01, integrator=integrator)
 
-errs_no, _, full_x_hist = DA_SSA3.ETKF_SSA(copy(E), model, model_err, R, m,
-                              D, M, r1, r2, tree1, tree2; window=outfreq*Δt,
+errs_no, _, B2 = DA_SSA3.ETKF_SSA(copy(E), model, model_err, R, m,
+                              D, M, r1, r2, tree1, tree2; window=window,
                               H=H, outfreq=outfreq, cycles=cycles, psrm=false,
                               inflation=1.01, integrator=integrator)
