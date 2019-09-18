@@ -15,12 +15,15 @@ function ETKF_SSA(E::Array{Float64, 2}, model, model_err,
                   R::Symmetric{Float64, Array{Float64, 2}}, m::Int64, D, M,
                   r1, r2, tree1, tree2; psrm=true, H=I, Δt::Float64=0.1,
                   window::Float64=0.4, cycles::Int64=1000, outfreq=40,
-                  inflation=1.0, integrator=Integrators.rk4, static=I)
+                  inflation=1.0, integrator=Integrators.rk4, osc_vars=1:D)
     if H != I
-        p, n = size(H)
+        p = size(H)[1]
     else
-        p, n = size(R)
+        p = size(R)[1]
     end
+
+    H_osc = zeros(length(osc_vars), p)
+    H_osc[[CartesianIndex(i) for i in zip(osc_vars, osc_vars)]] .= 1
 
     full_x_hist = []
     x_true_hist = []
@@ -36,7 +39,7 @@ function ETKF_SSA(E::Array{Float64, 2}, model, model_err,
 
     errs_free = []
 
-    B = zeros(n, n)
+    B = zeros(D, D)
 
     for cycle=1:cycles
         println(cycle)
@@ -59,8 +62,8 @@ function ETKF_SSA(E::Array{Float64, 2}, model, model_err,
         for i=1:m
             E[:, i] = integrator(model_err, E[:, i], 0.0, window, Δt)
             if psrm
-                inc = -r2[knn(tree2, E[:, i], 1)[1][1], :] + r1[knn(tree1, E[:, i], 1)[1][1], :]
-                E[:, i] = E[:, i] + H'*inc
+                inc = -r2[knn(tree2, E[osc_vars, i], 1)[1][1], :] + r1[knn(tree1, E[osc_vars, i], 1)[1][1], :]
+                E[:, i] += (H')*(H_osc')*inc
             end
         end
 

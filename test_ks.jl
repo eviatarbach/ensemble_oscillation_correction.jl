@@ -9,19 +9,19 @@ include("run_da_ssa.jl")
 using .run_da_ssa
 
 M = 30
-D = 9
+D = 128
 modes = 1:4
 osc_vars = 1:D
-model = Models.colpitts
-model_err = Models.colpitts2
-integrator = Integrators.rk4
+model = "true"
+model_err = "false"
+integrator = Integrators.ks_integrate
 outfreq = 4
-Δt = 0.1
+Δt = 0.25
 m = 20
 cycles = 1000
 window = outfreq*Δt
 inflation = 1.01
-record_length = 1000.0
+record_length = 10000.0
 obs_err_pct = 0.1
 ens_err_pct = 0.01
 transient = 0
