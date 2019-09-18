@@ -23,7 +23,7 @@ function ETKF_SSA(E::Array{Float64, 2}, model, model_err,
     end
 
     H_osc = zeros(length(osc_vars), p)
-    H_osc[[CartesianIndex(i) for i in zip(osc_vars, osc_vars)]] .= 1
+    H_osc[[CartesianIndex(i) for i in zip(1:length(osc_vars), osc_vars)]] .= 1
 
     full_x_hist = []
     x_true_hist = []
