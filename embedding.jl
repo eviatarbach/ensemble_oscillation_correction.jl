@@ -6,6 +6,8 @@ using LinearAlgebra
 using ToeplitzMatrices
 using NearestNeighbors
 using Statistics
+using Distributed
+using SharedArrays
 
 function mssa(x::Array{Float64, 2}, M::Int64)
    N, D = size(x)
@@ -89,11 +91,11 @@ function reconstruct(X::Array{Float64, 2}, EV::Array{Float64, 2}, M::Int64,
                      D::Int64, ks)
    N = size(X)[1] + M - 1
    A = X*EV
-   R = zeros(length(ks), N, D)
+   R = SharedArray{Float64, 3}((length(ks), N, D))
 
    for (ik, k) in enumerate(ks)
       ek = reshape(EV[:, k], M, D)
-      for n=1:N
+      @sync @distributed for n=1:N
          if 1 <= n <= M - 1
             M_n = n
             L_n = 1

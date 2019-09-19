@@ -3,16 +3,12 @@ module run_da_ssa
 using LinearAlgebra
 using NearestNeighbors
 using Distributions
-using Distributed
 
-rmprocs(procs())
-addprocs()
+include("./embedding.jl")
+using .Embedding
 
 include("da_ssa.jl")
-include("embedding.jl")
-
 using .DA_SSA
-using .Embedding
 
 function etkf_da_ssa_compare(model, model_err, M, D, modes, osc_vars,
                              integrator, outfreq, Δt, m, cycles, window,
@@ -30,9 +26,9 @@ function etkf_da_ssa_compare(model, model_err, M, D, modes, osc_vars,
 
     y2 = integrator(model_err, u0, 0., record_length, Δt; inplace=false)[(transient + 1):outfreq:end, osc_vars]
 
-    EW1, EV1, X1 = mssa(y1, M)
+    EW1, EV1, X1 = Embedding.mssa(y1, M)
     #EW1, EV1 = Embedding.var_rotate!(EW1, EV1, M, D, 20)
-    EW2, EV2, X2 = mssa(y2, M)
+    EW2, EV2, X2 = Embedding.mssa(y2, M)
     #EW2, EV2 = Embedding.var_rotate!(EW2, EV2, M, D, 20)
 
     r1 = sum(Embedding.reconstruct(X1, EV2, M, length(osc_vars), modes),

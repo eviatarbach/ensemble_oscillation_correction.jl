@@ -1,12 +1,14 @@
 using Distributed
 
+rmprocs(procs())
+addprocs()
+
 @everywhere include("models.jl")
 @everywhere include("integrators.jl")
+@everywhere include("run_da_ssa.jl")
 @everywhere using .Models
 @everywhere using .Integrators
-
-include("run_da_ssa.jl")
-using .run_da_ssa
+@everywhere using .run_da_ssa
 
 M = 30
 D = 7

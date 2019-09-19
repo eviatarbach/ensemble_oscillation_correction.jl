@@ -2,15 +2,16 @@ module DA_SSA
 
 export ETKF_SSA
 
-include("integrators.jl")
-include("embedding.jl")
-using .Integrators
-using .Embedding
-
 using Distributions
 using Statistics
 using LinearAlgebra
 using NearestNeighbors
+using Distributed
+
+@everywhere include("integrators.jl")
+@everywhere include("embedding.jl")
+@everywhere using .Integrators
+@everywhere using .Embedding
 
 struct DA_Info
     errs
@@ -74,13 +75,11 @@ function ETKF_SSA(E::Array{Float64, 2}, model, model_err,
         append!(errs_free, sqrt(mean((x_free .- x_true).^2)))
         append!(spread, mean(std(E, dims=2)))
 
-        for j=1:outfreq
-            for i=1:m
-                E[:, i] = integrator(model_err, E[:, i], 0.0, Δt, Δt)
-                if psrm
-                    inc = -r2[knn(tree2, E[osc_vars, i], 1)[1][1], :] + r1[knn(tree1, E[osc_vars, i], 1)[1][1], :]
-                    E[:, i] += (H')*(H_osc')*inc
-                end
+        for i=1:m
+            E[:, i] = integrator(model_err, E[:, i], 0.0, window, Δt)
+            if psrm
+                inc = -r2[knn(tree2, E[osc_vars, i], 1)[1][1], :] + r1[knn(tree1, E[osc_vars, i], 1)[1][1], :]
+                E[:, i] += (H')*(H_osc')*inc
             end
         end
 
