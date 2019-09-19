@@ -49,14 +49,14 @@ function etkf_da_ssa_compare(model, model_err, M, D, modes, osc_vars,
 
     E += rand(ens_err, m)
 
-    info1 = DA_SSA.ETKF_SSA(copy(E), model, model_err, R, m, D, M, r1, r2,
-                            tree1, tree2; window=window, H=H, outfreq=outfreq,
-                            cycles=cycles, psrm=true, inflation=inflation,
+    info1 = DA_SSA.ETKF_SSA(copy(E), model, model_err, R, m, Δt, window,
+                            cycles, outfreq, D, M, r1, r2, tree1, tree2; H=H,
+                            psrm=true, inflation=inflation,
                             integrator=integrator, osc_vars=osc_vars, cov=cov)
 
-    info2 = DA_SSA.ETKF_SSA(copy(E), model, model_err, R, m, D, M, r1, r2,
-                            tree1, tree2; window=window, H=H, outfreq=outfreq,
-                            cycles=cycles, psrm=false, inflation=inflation,
+    info2 = DA_SSA.ETKF_SSA(copy(E), model, model_err, R, m, Δt, window,
+                            cycles, outfreq, D, M, r1, r2, tree1, tree2; H=H,
+                            psrm=false, inflation=inflation,
                             integrator=integrator, osc_vars=osc_vars, cov=cov)
 
     return info1, info2

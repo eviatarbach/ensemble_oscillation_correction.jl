@@ -20,9 +20,9 @@ struct DA_Info
 end
 
 function ETKF_SSA(E::Array{Float64, 2}, model, model_err,
-                  R::Symmetric{Float64, Array{Float64, 2}}, m::Int64, D, M,
-                  r1, r2, tree1, tree2; psrm=true, H=I, Δt::Float64=0.1,
-                  window::Float64=0.4, cycles::Int64=1000, outfreq=40,
+                  R::Symmetric{Float64, Array{Float64, 2}}, m::Int64,
+                  Δt::Float64, window::Float64, cycles::Int64, outfreq::Int64,
+                  D::Int64, M::Int64, r1, r2, tree1, tree2; psrm=true, H=I,
                   inflation=1.0, integrator=Integrators.rk4, osc_vars=1:D,
                   cov=false)
     if H != I
@@ -74,11 +74,13 @@ function ETKF_SSA(E::Array{Float64, 2}, model, model_err,
         append!(errs_free, sqrt(mean((x_free .- x_true).^2)))
         append!(spread, mean(std(E, dims=2)))
 
-        for i=1:m
-            E[:, i] = integrator(model_err, E[:, i], 0.0, window, Δt)
-            if psrm
-                inc = -r2[knn(tree2, E[osc_vars, i], 1)[1][1], :] + r1[knn(tree1, E[osc_vars, i], 1)[1][1], :]
-                E[:, i] += (H')*(H_osc')*inc
+        for j=1:outfreq
+            for i=1:m
+                E[:, i] = integrator(model_err, E[:, i], 0.0, Δt, Δt)
+                if psrm
+                    inc = -r2[knn(tree2, E[osc_vars, i], 1)[1][1], :] + r1[knn(tree1, E[osc_vars, i], 1)[1][1], :]
+                    E[:, i] += (H')*(H_osc')*inc
+                end
             end
         end
 
