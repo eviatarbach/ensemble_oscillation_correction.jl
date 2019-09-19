@@ -14,9 +14,10 @@ include("embedding.jl")
 using .DA_SSA
 using .Embedding
 
-function etkf_da_ssa(model, model_err, M, D, modes, osc_vars, integrator,
-                     outfreq, Δt, m, cycles, window, inflation, record_length,
-                     obs_err_pct, ens_err_pct, transient; cov=false)
+function etkf_da_ssa_compare(model, model_err, M, D, modes, osc_vars,
+                             integrator, outfreq, Δt, m, cycles, window,
+                             inflation, record_length, obs_err_pct, ens_err_pct,
+                             transient; cov=false)
     u0 = randn(D)
     y1 = integrator(model, u0, 0., record_length, Δt; inplace=false)[(transient + 1):outfreq:end, :]
 
@@ -48,22 +49,16 @@ function etkf_da_ssa(model, model_err, M, D, modes, osc_vars, integrator,
 
     E += rand(ens_err, m)
 
-    errs, errs_free, spread, B = DA_SSA.ETKF_SSA(copy(E), model, model_err, R, m,
-                                   D, M, r1, r2, tree1, tree2; window=window,
-                                   H=H, outfreq=outfreq, cycles=cycles,
-                                   inflation=inflation, integrator=integrator,
-                                   osc_vars=osc_vars, cov=cov)
+    info1 = DA_SSA.ETKF_SSA(copy(E), model, model_err, R, m, D, M, r1, r2,
+                            tree1, tree2; window=window, H=H, outfreq=outfreq,
+                            cycles=cycles, psrm=true, inflation=inflation,
+                            integrator=integrator, osc_vars=osc_vars, cov=cov)
 
-    errs_no, _, spread2, B2 = DA_SSA.ETKF_SSA(copy(E), model, model_err, R, m,
-                                  D, M, r1, r2, tree1, tree2; window=window,
-                                  H=H, outfreq=outfreq, cycles=cycles, psrm=false,
-                                  inflation=inflation, integrator=integrator,
-                                  osc_vars=osc_vars, cov=cov)
+    info2 = DA_SSA.ETKF_SSA(copy(E), model, model_err, R, m, D, M, r1, r2,
+                            tree1, tree2; window=window, H=H, outfreq=outfreq,
+                            cycles=cycles, psrm=false, inflation=inflation,
+                            integrator=integrator, osc_vars=osc_vars, cov=cov)
 
-    if cov
-        return errs, errs_no, errs_free, spread, spread2, B, B2
-    else
-        return errs, errs_no, errs_free, spread, spread2
-    end
+    return info1, info2
 end
 end

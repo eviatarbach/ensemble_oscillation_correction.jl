@@ -12,6 +12,13 @@ using Statistics
 using LinearAlgebra
 using NearestNeighbors
 
+struct DA_Info
+    errs
+    errs_free
+    spread
+    B
+end
+
 function ETKF_SSA(E::Array{Float64, 2}, model, model_err,
                   R::Symmetric{Float64, Array{Float64, 2}}, m::Int64, D, M,
                   r1, r2, tree1, tree2; psrm=true, H=I, Δt::Float64=0.1,
@@ -43,6 +50,8 @@ function ETKF_SSA(E::Array{Float64, 2}, model, model_err,
 
     if cov
         B = zeros(D, D)
+    else
+        B = nothing
     end
 
     for cycle=1:cycles
@@ -76,11 +85,7 @@ function ETKF_SSA(E::Array{Float64, 2}, model, model_err,
         x_true = integrator(model, x_true, 0.0, window, Δt)
         x_free = integrator(model_err, x_free, 0.0, window, Δt)
     end
-    if cov
-        return errs, errs_free, spread, B
-    else
-        return errs, errs_free, spread
-    end
+    return DA_Info(errs, errs_free, spread, B)
 end
 
 end
