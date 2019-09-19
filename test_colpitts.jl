@@ -26,9 +26,9 @@ obs_err_pct = 0.1
 ens_err_pct = 0.01
 transient = 0
 
-errs, errs_no, errs_free = run_da_ssa.etkf_da_ssa(model, model_err, M, D, modes,
+errs, errs_no, errs_free, spread, spread2, B, B2 = run_da_ssa.etkf_da_ssa(model, model_err, M, D, modes,
                                                   osc_vars, integrator, outfreq,
                                                   Δt, m, cycles, window,
                                                   inflation, record_length,
                                                   obs_err_pct, ens_err_pct,
-                                                  transient)
+                                                  transient, cov=true)

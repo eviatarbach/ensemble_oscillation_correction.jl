@@ -8,6 +8,7 @@ using .Integrators
 using .Embedding
 
 using Distributions
+using Statistics
 using LinearAlgebra
 using NearestNeighbors
 
@@ -15,7 +16,8 @@ function ETKF_SSA(E::Array{Float64, 2}, model, model_err,
                   R::Symmetric{Float64, Array{Float64, 2}}, m::Int64, D, M,
                   r1, r2, tree1, tree2; psrm=true, H=I, Δt::Float64=0.1,
                   window::Float64=0.4, cycles::Int64=1000, outfreq=40,
-                  inflation=1.0, integrator=Integrators.rk4, osc_vars=1:D)
+                  inflation=1.0, integrator=Integrators.rk4, osc_vars=1:D,
+                  cov=false)
     if H != I
         p = size(H)[1]
     else
@@ -36,10 +38,12 @@ function ETKF_SSA(E::Array{Float64, 2}, model, model_err,
     x_free = x_true + randn(D)/5
 
     errs = []
-
     errs_free = []
+    spread = []
 
-    B = zeros(D, D)
+    if cov
+        B = zeros(D, D)
+    end
 
     for cycle=1:cycles
         println(cycle)
@@ -48,16 +52,18 @@ function ETKF_SSA(E::Array{Float64, 2}, model, model_err,
 
         X = (E .- x_m)/sqrt(m - 1)
         X = x_m .+ inflation*(X .- x_m)
-        #B = B*(cycle - 1) + X*X'
-        #B = B/cycle
+        if cov
+            B = B*(cycle - 1) + X*X'
+            B = B/cycle
+        end
         Y = (H*E .- H*x_m)/sqrt(m - 1)
         Ω = real((I + Y'*R_inv*Y)^(-1))
         w = Ω*Y'*R_inv*(y - H*x_m)
 
         E = real(x_m .+ X*(w .+ sqrt(m - 1)*Ω^(1/2)))
-        err = sqrt(mean((mean(E, dims=2) .- x_true).^2))
-        append!(errs, err)
+        append!(errs, sqrt(mean((mean(E, dims=2) .- x_true).^2)))
         append!(errs_free, sqrt(mean((x_free .- x_true).^2)))
+        append!(spread, mean(std(E, dims=2)))
 
         for i=1:m
             E[:, i] = integrator(model_err, E[:, i], 0.0, window, Δt)
@@ -70,7 +76,11 @@ function ETKF_SSA(E::Array{Float64, 2}, model, model_err,
         x_true = integrator(model, x_true, 0.0, window, Δt)
         x_free = integrator(model_err, x_free, 0.0, window, Δt)
     end
-    return errs, errs_free, B
+    if cov
+        return errs, errs_free, spread, B
+    else
+        return errs, errs_free, spread
+    end
 end
 
 end
