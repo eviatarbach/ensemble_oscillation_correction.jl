@@ -3,11 +3,12 @@ module Embedding
 export mssa, reconstruct, transform, project, obs_operator, transform1, obs_operator1
 
 using LinearAlgebra
-using ToeplitzMatrices
-using NearestNeighbors
 using Statistics
 using Distributed
 using SharedArrays
+
+using ToeplitzMatrices
+using NearestNeighbors
 
 function mssa(x::Array{Float64, 2}, M::Int64)
    N, D = size(x)

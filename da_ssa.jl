@@ -2,12 +2,13 @@ module DA_SSA
 
 export ETKF_SSA
 
-using Distributions
 using Statistics
 using LinearAlgebra
-using NearestNeighbors
 using Distributed
 using SharedArrays
+
+using NearestNeighbors
+using Distributions
 
 struct DA_Info
     errs
@@ -50,7 +51,7 @@ function ETKF_SSA(; E::Array{Float64, 2}, model, model_err, integrator,
         B = nothing
     end
 
-    #E = SharedArray(E)
+    E = SharedArray(E)
 
     for cycle=1:cycles
         println(cycle)
@@ -72,7 +73,7 @@ function ETKF_SSA(; E::Array{Float64, 2}, model, model_err, integrator,
         append!(errs_free, sqrt(mean((x_free .- x_true).^2)))
         append!(spread, mean(std(E, dims=2)))
 
-        for i=1:m
+        @sync @distributed for i=1:m
             E[:, i] = integrator(model_err, E[:, i], 0.0, window, Δt)
             if psrm
                 inc = -r2[knn(tree2, E[osc_vars, i], 1)[1][1], :] + r1[knn(tree1, E[osc_vars, i], 1)[1][1], :]

@@ -1,8 +1,9 @@
 module run_da_ssa
 
+using Distributions
+
 using LinearAlgebra
 using NearestNeighbors
-using Distributions
 
 include("./embedding.jl")
 using .Embedding
