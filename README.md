@@ -1,6 +1,6 @@
 Dependencies:
 - Distributions
 - DSP
-- FFTW (just for Kuramoto--Sivashinsky example)
+- FFTW (just for Kuramoto–Sivashinsky example)
 - NearestNeighbors
 - ToeplitzMatrices
