@@ -10,10 +10,10 @@ using .Embedding
 include("da_ssa.jl")
 using .DA_SSA
 
-function etkf_da_ssa_compare(model, model_err, M, D, modes, osc_vars,
-                             integrator, outfreq, Δt, m, cycles, window,
+function etkf_da_ssa_compare(; model, model_err, integrator, m, M, D, modes,
+                             osc_vars, outfreq, Δt, cycles, window,
                              inflation, record_length, obs_err_pct, ens_err_pct,
-                             transient; cov=false)
+                             transient, cov=false)
     u0 = randn(D)
     y1 = integrator(model, u0, 0., record_length, Δt; inplace=false)[(transient + 1):outfreq:end, :]
 
@@ -45,15 +45,19 @@ function etkf_da_ssa_compare(model, model_err, M, D, modes, osc_vars,
 
     E += rand(ens_err, m)
 
-    info1 = DA_SSA.ETKF_SSA(copy(E), model, model_err, R, m, Δt, window,
-                            cycles, outfreq, D, M, r1, r2, tree1, tree2; H=H,
-                            psrm=true, inflation=inflation,
-                            integrator=integrator, osc_vars=osc_vars, cov=cov)
+    info1 = DA_SSA.ETKF_SSA(E=copy(E), model=model, model_err=model_err,
+                            integrator=integrator, R=R, m=m, Δt=Δt,
+                            window=window, cycles=cycles, outfreq=outfreq, D=D,
+                            M=M, r1=r1, r2=r2, tree1=tree1, tree2=tree2,
+                            H=H, psrm=true, inflation=inflation,
+                            osc_vars=osc_vars, cov=cov)
 
-    info2 = DA_SSA.ETKF_SSA(copy(E), model, model_err, R, m, Δt, window,
-                            cycles, outfreq, D, M, r1, r2, tree1, tree2; H=H,
-                            psrm=false, inflation=inflation,
-                            integrator=integrator, osc_vars=osc_vars, cov=cov)
+    info2 = DA_SSA.ETKF_SSA(E=copy(E), model=model, model_err=model_err,
+                            integrator=integrator, R=R, m=m, Δt=Δt,
+                            window=window, cycles=cycles, outfreq=outfreq, D=D,
+                            M=M, r1=r1, r2=r2, tree1=tree1, tree2=tree2,
+                            H=H, psrm=false, inflation=inflation,
+                            osc_vars=osc_vars, cov=cov)
 
     return info1, info2
 end

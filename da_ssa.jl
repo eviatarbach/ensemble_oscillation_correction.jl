@@ -7,11 +7,7 @@ using Statistics
 using LinearAlgebra
 using NearestNeighbors
 using Distributed
-
-@everywhere include("integrators.jl")
-@everywhere include("embedding.jl")
-@everywhere using .Integrators
-@everywhere using .Embedding
+using SharedArrays
 
 struct DA_Info
     errs
@@ -20,12 +16,11 @@ struct DA_Info
     B
 end
 
-function ETKF_SSA(E::Array{Float64, 2}, model, model_err,
+function ETKF_SSA(; E::Array{Float64, 2}, model, model_err, integrator,
                   R::Symmetric{Float64, Array{Float64, 2}}, m::Int64,
                   Δt::Float64, window::Float64, cycles::Int64, outfreq::Int64,
-                  D::Int64, M::Int64, r1, r2, tree1, tree2; psrm=true, H=I,
-                  inflation=1.0, integrator=Integrators.rk4, osc_vars=1:D,
-                  cov=false)
+                  D::Int64, M::Int64, r1, r2, tree1, tree2, psrm=true, H=I,
+                  inflation=1.0, osc_vars=1:D, cov=false)
     if H != I
         p = size(H)[1]
     else
@@ -54,6 +49,8 @@ function ETKF_SSA(E::Array{Float64, 2}, model, model_err,
     else
         B = nothing
     end
+
+    #E = SharedArray(E)
 
     for cycle=1:cycles
         println(cycle)
