@@ -5,7 +5,6 @@ export ETKF_SSA
 using Statistics
 using LinearAlgebra
 using Distributed
-using SharedArrays
 
 using NearestNeighbors
 using Distributions

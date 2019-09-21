@@ -1,22 +1,40 @@
 module Models
 
-export lorenz, peña, ferrari, rossler
+using Statistics
 
-function lorenz(t, u)
- du = zeros(3)
- du[1] = 10.0*(u[2]-u[1])
- du[2] = u[1]*(28.0-u[3]) - u[2]
- du[3] = u[1]*u[2] - (8/3)*u[3]
- return du
+struct Model
+   p
+   integrator
+   tendency
 end
 
-function lorenz2(t, u)
- du = zeros(3)
- du[1] = 10.1*(u[2]-u[1])
- du[2] = u[1]*(28.0-u[3]) - u[2]
- du[3] = u[1]*u[2] - (8/3)*u[3]
- return du
+function integrate(model::Model)
+   model.integrator((t, u)->model.tendency(t, u, model.p))
 end
+
+function model_error(; x0, model_true, model_err, integrator, outfreq, Δt, N)
+   window = outfreq*Δt
+   pts = integrator(model_true, x0, 0.0, N*window, Δt, inplace=false)[1:outfreq:end, :]
+   errs = zeros(N, size(pts)[2])
+   for i=1:N
+      res_true = integrator(model_true, pts[i, :], 0.0, window, Δt)
+      res_err = integrator(model_err, pts[i, :], 0.0, window, Δt)
+      errs[i, :] = (res_true - res_err).^2
+   end
+   return sqrt.(mean(errs, dims=1))
+end
+
+function lorenz(t, u, p)
+   σ, β, ρ = p
+   du = zeros(3)
+   du[1] = σ*(u[2]-u[1])
+   du[2] = u[1]*(ρ-u[3]) - u[2]
+   du[3] = u[1]*u[2] - β*u[3]
+   return du
+end
+
+lorenz_true = (t, u)->lorenz(t, u, [10, 8/3, 28])
+lorenz_err = (t, u)->lorenz(t, u, [10.1, 8/3, 28])
 
 function peña(t, u)
    σ = 10
