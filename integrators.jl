@@ -1,6 +1,9 @@
 module Integrators
 
-using FFTW, Statistics, DSP
+using Statistics
+
+using FFTW
+using DSP
 
 export rk4, ks_integrate
 
@@ -33,8 +36,8 @@ end
 function ks_integrate(f, y0::Array{Float64, 1}, t0::Float64,
                   t1::Float64, h::Float64; inplace=true)
     # Based on https://github.com/jswhit/pyks/blob/master/KS.py
-    L = 16
-    N = 128
+    L = 10
+    N = 42
     if f == "false"
         diffusion = 1.05
     else

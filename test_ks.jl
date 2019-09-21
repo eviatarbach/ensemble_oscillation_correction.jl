@@ -11,7 +11,7 @@ addprocs()
 @everywhere using .run_da_ssa
 
 M = 30
-D = 128
+D = 42
 modes = 1:5
 osc_vars = 1:D
 model = "true"
@@ -20,7 +20,7 @@ integrator = Integrators.ks_integrate
 outfreq = 4
 Δt = 0.25
 m = 20
-cycles = 100
+cycles = 1000
 window = outfreq*Δt
 inflation = 1.01
 record_length = 10000.0
