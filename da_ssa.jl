@@ -50,6 +50,7 @@ function ETKF_SSA(; E::Array{Float64, 2}, model, model_err, integrator,
         B = nothing
     end
 
+    t = 0.0
     for cycle=1:cycles
         println(cycle)
         y = H*x_true + rand(obs_err)
@@ -71,15 +72,17 @@ function ETKF_SSA(; E::Array{Float64, 2}, model, model_err, integrator,
         append!(spread, mean(std(E, dims=2)))
 
         for i=1:m
-            E[:, i] = integrator(model_err, E[:, i], 0.0, window, Δt)
+            E[:, i] = integrator(model_err, E[:, i], t, t + window, Δt)
             if psrm
                 inc = -r2[knn(tree2, E[osc_vars, i], 1)[1][1], :] + r1[knn(tree1, E[osc_vars, i], 1)[1][1], :]
                 E[:, i] += (H')*(H_osc')*inc
             end
         end
 
-        x_true = integrator(model, x_true, 0.0, window, Δt)
-        x_free = integrator(model_err, x_free, 0.0, window, Δt)
+        x_true = integrator(model, x_true, t, t + window, Δt)
+        x_free = integrator(model_err, x_free, t, t + window, Δt)
+
+        t += window
     end
     return DA_Info(errs, errs_free, spread, B)
 end

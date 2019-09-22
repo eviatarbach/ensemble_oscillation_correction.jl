@@ -164,4 +164,7 @@ elegant_true = (t, u)->elegant(t, u, Dict("k" => 1))
 
 elegant_err = (t, u)->elegant(t, u, Dict("k" => 1.2))
 
+function lorenz96(t, u, p)
+end
+
 end
