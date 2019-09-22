@@ -11,18 +11,18 @@ addprocs()
 @everywhere using .run_da_ssa
 
 M = 30
-D = 7
-modes = 1:4
+D = 36
+modes = 2:5
 osc_vars = 1:D
-model = Models.ferrari_true
-model_err = Models.ferrari_err
+model = Models.lorenz96_true
+model_err = Models.lorenz96_err
 integrator = Integrators.rk4
 outfreq = 1
 Δt = 0.1
 m = 20
 cycles = 1000
 window = outfreq*Δt
-inflation = 1.05
+inflation = 1.01
 record_length = 10000.0
 obs_err_pct = 0.1
 ens_err_pct = 0.01

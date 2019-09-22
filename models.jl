@@ -165,6 +165,27 @@ elegant_true = (t, u)->elegant(t, u, Dict("k" => 1))
 elegant_err = (t, u)->elegant(t, u, Dict("k" => 1.2))
 
 function lorenz96(t, u, p)
+   N = 36
+
+   # compute state derivatives
+   du = zeros(N)
+
+   # first the 3 edge cases: i=1,2,N
+   du[1] = (u[2] - u[N-1])*u[N] - u[1]
+   du[2] = (u[3] - u[N])*u[1] - u[2]
+   du[N] = (u[1] - u[N-2])*u[N-1] - u[N]
+
+   # then the general case
+   for i=3:N-1
+       du[i] = (u[i+1] - u[i-2])*u[i-1] - u[i]
+    end
+
+   du .+= p["F"]
+
+   return du
 end
+
+lorenz96_true = (t, u)->lorenz96(t, u, Dict("F" => 8))
+lorenz96_err = (t, u)->lorenz96(t, u, Dict("F" => 8.1))
 
 end
