@@ -6,6 +6,7 @@ using LinearAlgebra
 using Statistics
 using Distributed
 using SharedArrays
+using Distributions
 
 using ToeplitzMatrices
 using NearestNeighbors
@@ -179,4 +180,24 @@ function estimate_errs(osc, tree, data, pcs, max_k=30)
    return reshape(errs, D, :)'
 end
 
+function create_tree(; model, Δt, outfreq, obs_err_pct, M, record_length, transient, u0, D,
+                     osc_vars, modes, integrator)
+   y = integrator(model, u0, 0., record_length, Δt; inplace=false)[(transient + 1):outfreq:end, :]
+   if (obs_err_pct > 0)
+      R = Symmetric(diagm(0 => obs_err_pct*std(y, dims=1)[1, :]))
+      obs_err = MvNormal(zeros(D), R/2)
+      y = y[:, osc_vars] + (rand(obs_err, size(y)[1])')[:, osc_vars]
+   else
+      y = y[:, osc_vars]
+   end
+
+   EW, EV, X = Embedding.mssa(y, M)
+
+   r = sum(Embedding.reconstruct(X, EV, M, length(osc_vars), modes),
+           dims=1)[1, :, :]
+
+   tree = KDTree(copy(y'))
+
+   return tree, EW, EV, y, r
+end
 end

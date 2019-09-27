@@ -87,15 +87,11 @@ function ETKF_SSA(; E::Array{Float64, 2}, model, model_err, integrator,
 
         for i=1:m
             E[:, i] = integrator(model_err, E[:, i], t, t + window, Δt)
-            if ~psrm
-                #E[:, i] += randn(D)
-            end
             if psrm
-                #E[:, i] += 0.2*randn(D)
                 # To improve performance, should do tree searches for all
                 # ensemble members at once
                 inc = -mean(r2[knn(tree2, E[osc_vars, i], k)[1], :], dims=1) + mean(r1[knn(tree1, E[osc_vars, i], k)[1], :], dims=1)
-                E[:, i] += 0.4*(H')*(H_osc')*inc'
+                E[:, i] += (H')*(H_osc')*inc'
             end
         end
 
