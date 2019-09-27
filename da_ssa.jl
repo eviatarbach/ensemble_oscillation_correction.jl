@@ -19,7 +19,7 @@ end
 function ETKF_SSA(; E::Array{Float64, 2}, model, model_err, integrator,
                   R::Symmetric{Float64, Array{Float64, 2}}, m::Int64,
                   Δt::Float64, window::Float64, cycles::Int64, outfreq::Int64,
-                  D::Int64, M::Int64, r1, r2, tree1, tree2, psrm=true, H=I,
+                  D::Int64, M::Int64, k, r1, r2, tree1, tree2, psrm=true, H=I,
                   inflation=1.0, osc_vars=1:D, cov=false)
     if H != I
         p = size(H)[1]
@@ -57,7 +57,7 @@ function ETKF_SSA(; E::Array{Float64, 2}, model, model_err, integrator,
         x_m = mean(E, dims=2)
 
         X = (E .- x_m)/sqrt(m - 1)
-        X = x_m .+ inflation*(X .- x_m)
+        X = inflation*X
         if cov
             B = B*(cycle - 1) + X*X'
             B = B/cycle
@@ -73,9 +73,15 @@ function ETKF_SSA(; E::Array{Float64, 2}, model, model_err, integrator,
 
         for i=1:m
             E[:, i] = integrator(model_err, E[:, i], t, t + window, Δt)
+            if ~psrm
+                #E[:, i] += randn(D)
+            end
             if psrm
-                inc = -r2[knn(tree2, E[osc_vars, i], 1)[1][1], :] + r1[knn(tree1, E[osc_vars, i], 1)[1][1], :]
-                E[:, i] += (H')*(H_osc')*inc
+                #E[:, i] += 0.2*randn(D)
+                # To improve performance, should do tree searches for all
+                # ensemble members at once
+                inc = -mean(r2[knn(tree2, E[osc_vars, i], k)[1], :], dims=1) + mean(r1[knn(tree1, E[osc_vars, i], k)[1], :], dims=1)
+                E[:, i] += 0.4*(H')*(H_osc')*inc'
             end
         end
 
