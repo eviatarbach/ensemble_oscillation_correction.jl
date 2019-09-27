@@ -15,7 +15,7 @@ D = 9
 k = 1
 
 osc_vars = 1:D
-modes = 1:6
+modes = 1:20
 model = Models.colpitts_true
 model_err = Models.colpitts_err
 integrator = Integrators.rk4
@@ -24,12 +24,12 @@ outfreq = 4
 m = 20
 cycles = 1000
 window = outfreq*Δt
-inflation1 = 1.05
-inflation2 = 1.15
+inflation1 = 1.1
+inflation2 = 1.1
 record_length = 10000.0
 obs_err_pct = 0.1
 ens_err_pct = 0.1
-transient = 0
+transient = 500
 cov = false
 
 info1, info2, ssa_info1, ssa_info2 = run_da_ssa.etkf_da_ssa_compare(model=model, model_err=model_err,

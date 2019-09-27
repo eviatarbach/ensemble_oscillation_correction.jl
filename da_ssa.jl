@@ -14,6 +14,7 @@ struct DA_Info
     errs_free
     spread
     B
+    alphas
 end
 
 function ETKF_SSA(; E::Array{Float64, 2}, model, model_err, integrator,
@@ -51,13 +52,26 @@ function ETKF_SSA(; E::Array{Float64, 2}, model, model_err, integrator,
     end
 
     t = 0.0
+    alpha_b = inflation
+    v_b = 0.01^2
+    alpha = alpha_b
+    alphas = []
     for cycle=1:cycles
         println(cycle)
         y = H*x_true + rand(obs_err)
         x_m = mean(E, dims=2)
 
         X = (E .- x_m)/sqrt(m - 1)
-        X = inflation*X
+        d = y - H*x_m
+        B = X*X'
+
+        alpha_b = alpha
+        alpha_o = (tr((d*d') .* R_inv) - p)/tr((H*B*H') .* R_inv)
+        v_o = (2/p)*((alpha_b*tr((H*B*H') .* R_inv) + p)/tr((H*B*H') .* R_inv))^2
+        alpha = (alpha_b*v_o + alpha_o*v_b)/(v_o + v_b)
+        append!(alphas, alpha)
+
+        X = alpha*X
         if cov
             B = B*(cycle - 1) + X*X'
             B = B/cycle
@@ -90,7 +104,7 @@ function ETKF_SSA(; E::Array{Float64, 2}, model, model_err, integrator,
 
         t += window
     end
-    return DA_Info(errs, errs_free, spread, B)
+    return DA_Info(errs, errs_free, spread, B, alphas)
 end
 
 end

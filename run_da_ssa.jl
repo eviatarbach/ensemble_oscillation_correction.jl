@@ -54,11 +54,11 @@ function etkf_da_ssa_compare(; model, model_err, integrator, m, M, D, k, modes,
     E += rand(ens_err, m)
 
     da_info1 = DA_SSA.ETKF_SSA(E=copy(E), model=model, model_err=model_err,
-                               integrator=integrator, R=R, m=m, Δt=Δt,
-                               window=window, cycles=cycles, outfreq=outfreq,
-                               D=D, k=k, M=M, r1=r1, r2=r2, tree1=tree1,
-                               tree2=tree2, H=H, psrm=true, inflation=inflation1,
-                               osc_vars=osc_vars, cov=cov)
+                              integrator=integrator, R=R, m=m, Δt=Δt,
+                              window=window, cycles=cycles, outfreq=outfreq,
+                              D=D, k=k, M=M, r1=r1, r2=r2, tree1=tree1,
+                              tree2=tree2, H=H, psrm=true, inflation=inflation1,
+                              osc_vars=osc_vars, cov=cov)
 
     da_info2 = DA_SSA.ETKF_SSA(E=copy(E), model=model, model_err=model_err,
                                integrator=integrator, R=R, m=m, Δt=Δt,
