@@ -29,9 +29,42 @@ function mssa(x::Array{Float64, 2}, M::Int64)
    EW = reverse(EW)
    EV = reverse(EV, dims=2)
 
-   A = xtde*EV
-
    return EW, EV, xtde
+end
+
+function mssa_cp(x::Array{Float64, 2}, M::Int64)
+   N, D = size(x)
+
+   idx = Hankel([float(i) for i in 1:N-M+1], [float(i) for i in N-M+1:N])
+   idx = round.(Int, idx)
+   xtde = zeros(N-M+1, M, D)
+
+   for d=1:D
+      xtde[:, :, d] = x[:, d][idx]
+   end
+   xtde = reshape(xtde, N-M+1, D*M, 1)[:, :, 1]
+
+   C = xtde'*xtde/(N-M+1)
+
+   Xp = zeros(M*D, N)
+
+   Xp[:, 1:N-M+1] = xtde'
+
+   for k=(N-M+2):N
+      # Fill in upper diagonal with known values
+      offset = k - (N - M + 1)
+      Xp[1:end-offset*D, k] = (xtde')[offset*D + 1:end, end]
+      C_21 = C[1:offset*D, (offset*D + 1):end]
+      C_11_inv = inv(C[(offset*D + 1):end, (offset*D + 1):end])
+      Xp[(end-offset*D+1):end, k] = C_21*C_11_inv*Xp[1:end-offset*D, k]
+   end
+
+   EW, EV = eigen(C)
+
+   EW = reverse(EW)
+   EV = reverse(EV, dims=2)
+
+   return EW, EV, Xp'
 end
 
 function varimax(A::Array{Float64, 3}, reltol=sqrt(eps(Float64)),

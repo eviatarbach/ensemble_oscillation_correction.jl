@@ -12,10 +12,10 @@ addprocs()
 
 M = 30
 D = 9
-k = 1
+k = 5
 
 osc_vars = 1:D
-modes = 1:20
+modes = 2:3
 model = Models.colpitts_true
 model_err = Models.colpitts_err
 integrator = Integrators.rk4
@@ -23,9 +23,9 @@ outfreq = 4
 Δt = 0.1
 m = 20
 cycles = 1000
-window = 2.0
+window = 3.0
 inflation1 = 1.2
-inflation2 = 1.2
+inflation2 = 1.27
 record_length = 10000.0
 obs_err_pct = 0.1
 ens_err_pct = 0.1

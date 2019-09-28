@@ -1,6 +1,7 @@
 module Models
 
 using Statistics
+using NearestNeighbors
 
 struct Model
    p
@@ -20,6 +21,26 @@ function model_error(; x0, model_true, model_err, integrator, outfreq, Δt, N)
       res_true = integrator(model_true, pts[i, :], 0.0, window, Δt)
       res_err = integrator(model_err, pts[i, :], 0.0, window, Δt)
       errs[i, :] = (res_true - res_err)
+   end
+   return errs#sqrt.(mean(errs, dims=1))
+end
+
+function model_error_ssa(; x0, model_true, model_err, integrator, outfreq, Δt, N,
+                         tree1, tree2, k, r1, r2, psrm=true)
+   window = outfreq*Δt
+   pts = integrator(model_true, x0, 0.0, N*window, Δt, inplace=false)[1:outfreq:end, :]
+   errs = zeros(N, size(pts)[2])
+   for i=1:N
+      res_true = integrator(model_true, pts[i, :], 0.0, window, Δt)
+      res_err = integrator(model_err, pts[i, :], 0.0, window, Δt)
+      i1, d1 = knn(tree1, res_err, k)
+      i2, d2 = knn(tree2, res_err, k)
+      inc = -sum(r2[i2, :] ./ d2, dims=1)/sum(1 ./ d2) + sum(r1[i1, :] ./ d1, dims=1)/sum(1 ./ d1)
+      if psrm
+         errs[i, :] = (res_true - (res_err + inc'))
+      else
+         errs[i, :] = (res_true - res_err)
+      end
    end
    return errs#sqrt.(mean(errs, dims=1))
 end
