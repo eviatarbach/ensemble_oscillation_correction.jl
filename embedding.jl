@@ -33,6 +33,9 @@ function mssa(x::Array{Float64, 2}, M::Int64)
 end
 
 function mssa_cp(x::Array{Float64, 2}, M::Int64)
+   # Method from "Singular Spectrum Analysis With Conditional Predictions for
+   # Real-Time State Estimation and Forecasting", Ogrosky et al. (2019)
+
    N, D = size(x)
 
    idx = Hankel([float(i) for i in 1:N-M+1], [float(i) for i in N-M+1:N])
@@ -46,25 +49,37 @@ function mssa_cp(x::Array{Float64, 2}, M::Int64)
 
    C = xtde'*xtde/(N-M+1)
 
-   Xp = zeros(M*D, N)
+   Xp = zeros(N, M*D)
 
-   Xp[:, 1:N-M+1] = xtde'
+   Xp[1:N-M+1, :] = xtde
 
+   Xp = reshape(Xp, N, M, D)
+
+   xtde_end = reshape(xtde[end, :], M, D)
    for k=(N-M+2):N
       # Fill in upper diagonal with known values
       offset = k - (N - M + 1)
-      Xp[1:end-offset*D, k] = (xtde')[offset*D + 1:end, end]
-      C_21 = C[1:offset*D, (offset*D + 1):end]
-      C_11_inv = inv(C[(offset*D + 1):end, (offset*D + 1):end])
-      Xp[(end-offset*D+1):end, k] = C_21*C_11_inv*Xp[1:end-offset*D, k]
+      Xp[k, 1:(end-offset), :] = xtde_end[(offset + 1):end, :]
+
+      # Fill in unknown values
+      C_11 = reshape(reshape(C, M, D, M, D)[1:end-offset, :, 1:end-offset, :], (M - offset)*D, (M - offset)*D)
+      C_21 = reshape(reshape(C, M, D, M, D)[end-offset+1:end, :, 1:end-offset, :], :, (M - offset)*D)
+
+      # Need to add small amount of noise to avoid numerical issues with inversion
+      C_11 += randn(size(C_11))*1e-8
+
+      C_11_inv = inv(C_11)
+      Xp[k, (end-offset+1):end, :] = C_21*C_11_inv*reshape(Xp[k, 1:end-offset, :], D*(M - offset))
    end
+
+   Xp = reshape(Xp, N, M*D)
 
    EW, EV = eigen(C)
 
    EW = reverse(EW)
    EV = reverse(EV, dims=2)
 
-   return EW, EV, Xp'
+   return EW, EV, Xp
 end
 
 function varimax(A::Array{Float64, 3}, reltol=sqrt(eps(Float64)),
