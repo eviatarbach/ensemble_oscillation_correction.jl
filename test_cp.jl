@@ -1,9 +1,12 @@
 using Plots
+using Statistics
 
+include("embedding.jl")
 include("models.jl")
 include("integrators.jl")
 
 using .Embedding
+using .Models
 using .Integrators
 
 model = Models.colpitts_true
@@ -11,7 +14,7 @@ model = Models.colpitts_true
 M = 30
 D = 9
 outfreq = 4
-modes = 1:20
+modes = 1:6
 
 y = rk4(model, randn(9), 0., 1550.0 - Δt, Δt, inplace=false)[500:outfreq:end, :]
 

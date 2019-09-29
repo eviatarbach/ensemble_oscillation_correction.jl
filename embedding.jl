@@ -65,11 +65,58 @@ function mssa_cp(x::Array{Float64, 2}, M::Int64)
       C_11 = reshape(reshape(C, M, D, M, D)[1:end-offset, :, 1:end-offset, :], (M - offset)*D, (M - offset)*D)
       C_21 = reshape(reshape(C, M, D, M, D)[end-offset+1:end, :, 1:end-offset, :], :, (M - offset)*D)
 
-      # Need to add small amount of noise to avoid numerical issues with inversion
-      C_11 += randn(size(C_11))*1e-8
+      # Add small value to diagonal to fix issues with inversion
+      C_11 += 1e-8*I
 
       C_11_inv = inv(C_11)
       Xp[k, (end-offset+1):end, :] = C_21*C_11_inv*reshape(Xp[k, 1:end-offset, :], D*(M - offset))
+   end
+
+   Xp = reshape(Xp, N, M*D)
+
+   EW, EV = eigen(C)
+
+   EW = reverse(EW)
+   EV = reverse(EV, dims=2)
+
+   return EW, EV, Xp
+end
+
+function mssa_cp2(x::Array{Float64, 2}, M::Int64)
+   N, D = size(x)
+
+   idx = Hankel([float(i) for i in 1:N-M+1], [float(i) for i in N-M+1:N])
+   idx = round.(Int, idx)
+   xtde = zeros(N-M+1, M, D)
+
+   for d=1:D
+      xtde[:, :, d] = x[:, d][idx]
+   end
+   xtde = reshape(xtde, N-M+1, D*M, 1)[:, :, 1]
+
+   C = xtde'*xtde/(N-M+1)
+
+   Xp = zeros(N, M*D)
+
+   Xp[M:end, :] = xtde
+
+   Xp = reshape(Xp, N, M, D)
+
+   xtde_end = reshape(xtde[1, :], M, D)
+   for k=M-1:-1:1
+      # Fill in upper diagonal with known values
+      offset = M - k
+      Xp[k, offset+1:end, :] = xtde_end[1:end-offset, :]
+
+      # Fill in unknown values
+      C_11 = reshape(reshape(C, M, D, M, D)[offset+1:end, :, offset+1:end, :], (M - offset)*D, (M - offset)*D)
+      C_21 = reshape(reshape(C, M, D, M, D)[1:offset, :, offset+1:end, :], :, (M - offset)*D)
+
+      # Add small value to diagonal to fix issues with inversion
+      C_11 += 1e-8*I
+
+      C_11_inv = inv(C_11)
+      Xp[k, 1:offset, :] = C_21*C_11_inv*reshape(Xp[k, (offset+1):end, :], D*(M - offset))
    end
 
    Xp = reshape(Xp, N, M*D)
