@@ -18,8 +18,9 @@ modes = 1:6
 
 y = rk4(model, randn(9), 0., 1550.0 - Δt, Δt, inplace=false)[500:outfreq:end, :]
 
-EW, EV, X = Embedding.mssa(copy(y)[1:end, :], M)
-EWp, EVp, Xp = Embedding.mssa_cp(copy(y)[1:end-29, :], M)
+EW, EV, X, C = Embedding.mssa(copy(y)[1:end, :], M)
+C_conds = Embedding.precomp(C, M, D, 'f')
+Xp = Embedding.transform_cp(copy(y)[1:end-29, :], M, 'f', C_conds)
 heatmap(reverse(Xp[end-100:end, :], dims=2)', clim=(-15, 15))
 EWn, EVn, Xn = Embedding.mssa(copy(y)[1:end-29, :], M)
 

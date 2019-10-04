@@ -29,17 +29,21 @@ function mssa(x::Array{Float64, 2}, M::Int64)
    EW = reverse(EW)
    EV = reverse(EV, dims=2)
 
-   return EW, EV, xtde
+   return EW, EV, xtde, C
 end
 
-function precomp(C, M, D)
+function precomp(C, M, D, mode)
    C_conds = Array{Array{Float64, 2}, 1}()
 
-   for k=M-1:-1:1
-      offset = M - k
+   for offset=1:M-1
 
-      C_11 = reshape(reshape(C, M, D, M, D)[offset+1:end, :, offset+1:end, :], (M - offset)*D, (M - offset)*D)
-      C_21 = reshape(reshape(C, M, D, M, D)[1:offset, :, offset+1:end, :], :, (M - offset)*D)
+      if mode == 'f'
+         C_11 = reshape(reshape(C, M, D, M, D)[1:end-offset, :, 1:end-offset, :], (M - offset)*D, (M - offset)*D)
+         C_21 = reshape(reshape(C, M, D, M, D)[end-offset+1:end, :, 1:end-offset, :], :, (M - offset)*D)
+      elseif mode == 'b'
+         C_11 = reshape(reshape(C, M, D, M, D)[offset+1:end, :, offset+1:end, :], (M - offset)*D, (M - offset)*D)
+         C_21 = reshape(reshape(C, M, D, M, D)[1:offset, :, offset+1:end, :], :, (M - offset)*D)
+      end
 
       C_11 += 1e-8*I
       C_11_inv = inv(C_11)
@@ -158,7 +162,7 @@ function transform1(x, EV::Array{Float64, 2}, M, D, ks)
    return R
 end
 
-function transform_cp(x::Array{Float64, 2}, M::Int64, C_conds)
+function transform_cp(x::Array{Float64, 2}, M::Int64, mode, C_conds)
    # Method from "Singular Spectrum Analysis With Conditional Predictions for
    # Real-Time State Estimation and Forecasting", Ogrosky et al. (2019)
 
@@ -175,85 +179,40 @@ function transform_cp(x::Array{Float64, 2}, M::Int64, C_conds)
 
    Xp = zeros(N, M*D)
 
-   Xp[1:N-M+1, :] = xtde
+   if mode == 'f'
+      Xp[1:N-M+1, :] = xtde
+
+      xtde_end = reshape(xtde[end, :], M, D)
+      indices = (N-M+2):N
+   elseif mode == 'b'
+      Xp[M:end, :] = xtde
+
+      xtde_end = reshape(xtde[1, :], M, D)
+      indices = M-1:-1:1
+   end
 
    Xp = reshape(Xp, N, M, D)
 
-   xtde_end = reshape(xtde[end, :], M, D)
-   for k=(N-M+2):N
-      # Fill in upper diagonal with known values
-      offset = k - (N - M + 1)
-      Xp[k, 1:(end-offset), :] = xtde_end[(offset + 1):end, :]
+   for k=indices
+      if mode == 'f'
+         offset = k - (N - M + 1)
 
-      # Fill in unknown values
-      C_cond = C_conds[offset]
-      Xp[k, (end-offset+1):end, :] = C_cond*reshape(Xp[k, 1:end-offset, :], D*(M - offset))
-   end
+         # Fill in upper diagonal with known values
+         Xp[k, 1:(end-offset), :] = xtde_end[(offset + 1):end, :]
 
-   Xp = reshape(Xp, N, M*D)
+         C_cond = C_conds[offset]
 
-   return Xp
-end
+         # Fill in unknown values
+         Xp[k, (end-offset+1):end, :] = C_cond*reshape(Xp[k, 1:end-offset, :], D*(M - offset))
+      elseif mode == 'b'
+         offset = M - k
 
-function transform_cp_backwards(x::Array{Float64, 2}, M::Int64, C_conds)
-   N, D = size(x)
+         Xp[k, offset+1:end, :] = xtde_end[1:end-offset, :]
 
-   idx = Hankel([float(i) for i in 1:N-M+1], [float(i) for i in N-M+1:N])
-   idx = round.(Int, idx)
-   xtde = zeros(N-M+1, M, D)
+         C_cond = C_conds[offset]
 
-   for d=1:D
-      xtde[:, :, d] = x[:, d][idx]
-   end
-   xtde = reshape(xtde, N-M+1, D*M, 1)[:, :, 1]
-
-   Xp = zeros(N, M*D)
-
-   Xp[M:end, :] = xtde
-
-   Xp = reshape(Xp, N, M, D)
-
-   xtde_end = reshape(xtde[1, :], M, D)
-   for k=M-1:-1:1
-      # Fill in upper diagonal with known values
-      offset = M - k
-      Xp[k, offset+1:end, :] = xtde_end[1:end-offset, :]
-
-      C_cond = C_conds[offset]
-      Xp[k, 1:offset, :] = C_cond*reshape(Xp[k, (offset+1):end, :], D*(M - offset))
-   end
-
-   Xp = reshape(Xp, N, M*D)
-
-   return Xp
-end
-
-function transform_cp_backwards(x::Array{Float64, 2}, M::Int64, C_conds)
-   N, D = size(x)
-
-   idx = Hankel([float(i) for i in 1:N-M+1], [float(i) for i in N-M+1:N])
-   idx = round.(Int, idx)
-   xtde = zeros(N-M+1, M, D)
-
-   for d=1:D
-      xtde[:, :, d] = x[:, d][idx]
-   end
-   xtde = reshape(xtde, N-M+1, D*M, 1)[:, :, 1]
-
-   Xp = zeros(N, M*D)
-
-   Xp[M:end, :] = xtde
-
-   Xp = reshape(Xp, N, M, D)
-
-   xtde_end = reshape(xtde[1, :], M, D)
-   for k=M-1:-1:1
-      # Fill in upper diagonal with known values
-      offset = M - k
-      Xp[k, offset+1:end, :] = xtde_end[1:end-offset, :]
-
-      C_cond = C_conds[offset]
-      Xp[k, 1:offset, :] = C_cond*reshape(Xp[k, (offset+1):end, :], D*(M - offset))
+         Xp[k, 1:offset, :] = C_cond*reshape(Xp[k, (offset+1):end, :], D*(M - offset))
+      end
    end
 
    Xp = reshape(Xp, N, M*D)
