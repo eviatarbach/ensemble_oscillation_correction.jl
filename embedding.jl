@@ -82,7 +82,7 @@ function mssa_cp(x::Array{Float64, 2}, M::Int64)
    return EW, EV, Xp
 end
 
-function mssa_cp2(x::Array{Float64, 2}, M::Int64)
+function mssa_cp2(x::Array{Float64, 2}, M::Int64; C=nothing)
    N, D = size(x)
 
    idx = Hankel([float(i) for i in 1:N-M+1], [float(i) for i in N-M+1:N])
@@ -94,7 +94,9 @@ function mssa_cp2(x::Array{Float64, 2}, M::Int64)
    end
    xtde = reshape(xtde, N-M+1, D*M, 1)[:, :, 1]
 
-   C = xtde'*xtde/(N-M+1)
+   if C == nothing
+      C = xtde'*xtde/(N-M+1)
+   end
 
    Xp = zeros(N, M*D)
 
@@ -126,7 +128,24 @@ function mssa_cp2(x::Array{Float64, 2}, M::Int64)
    EW = reverse(EW)
    EV = reverse(EV, dims=2)
 
-   return EW, EV, Xp
+   return EW, EV, Xp, C
+end
+
+function precomp(C, M, D)
+   C_conds = Array{Array{Float64, 2}, 1}()
+
+   for k=M-1:-1:1
+      offset = M - k
+
+      C_11 = reshape(reshape(C, M, D, M, D)[offset+1:end, :, offset+1:end, :], (M - offset)*D, (M - offset)*D)
+      C_21 = reshape(reshape(C, M, D, M, D)[1:offset, :, offset+1:end, :], :, (M - offset)*D)
+
+      C_11 += 1e-8*I
+      C_11_inv = inv(C_11)
+
+      push!(C_conds, C_21*C_11_inv)
+   end
+   return C_conds
 end
 
 function varimax(A::Array{Float64, 3}, reltol=sqrt(eps(Float64)),
@@ -236,6 +255,39 @@ function transform1(x, EV::Array{Float64, 2}, M, D, ks)
       end
    end
    return R
+end
+
+function transform_cp_backwards(x::Array{Float64, 2}, M::Int64, C_conds)
+   N, D = size(x)
+
+   idx = Hankel([float(i) for i in 1:N-M+1], [float(i) for i in N-M+1:N])
+   idx = round.(Int, idx)
+   xtde = zeros(N-M+1, M, D)
+
+   for d=1:D
+      xtde[:, :, d] = x[:, d][idx]
+   end
+   xtde = reshape(xtde, N-M+1, D*M, 1)[:, :, 1]
+
+   Xp = zeros(N, M*D)
+
+   Xp[M:end, :] = xtde
+
+   Xp = reshape(Xp, N, M, D)
+
+   xtde_end = reshape(xtde[1, :], M, D)
+   for k=M-1:-1:1
+      # Fill in upper diagonal with known values
+      offset = M - k
+      Xp[k, offset+1:end, :] = xtde_end[1:end-offset, :]
+
+      C_cond = C_conds[offset]
+      Xp[k, 1:offset, :] = C_cond*reshape(Xp[k, (offset+1):end, :], D*(M - offset))
+   end
+
+   Xp = reshape(Xp, N, M*D)
+
+   return Xp
 end
 
 function project(tree, point, osc, k, N)
