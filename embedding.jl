@@ -32,105 +32,6 @@ function mssa(x::Array{Float64, 2}, M::Int64)
    return EW, EV, xtde
 end
 
-function mssa_cp(x::Array{Float64, 2}, M::Int64)
-   # Method from "Singular Spectrum Analysis With Conditional Predictions for
-   # Real-Time State Estimation and Forecasting", Ogrosky et al. (2019)
-
-   N, D = size(x)
-
-   idx = Hankel([float(i) for i in 1:N-M+1], [float(i) for i in N-M+1:N])
-   idx = round.(Int, idx)
-   xtde = zeros(N-M+1, M, D)
-
-   for d=1:D
-      xtde[:, :, d] = x[:, d][idx]
-   end
-   xtde = reshape(xtde, N-M+1, D*M, 1)[:, :, 1]
-
-   C = xtde'*xtde/(N-M+1)
-
-   Xp = zeros(N, M*D)
-
-   Xp[1:N-M+1, :] = xtde
-
-   Xp = reshape(Xp, N, M, D)
-
-   xtde_end = reshape(xtde[end, :], M, D)
-   for k=(N-M+2):N
-      # Fill in upper diagonal with known values
-      offset = k - (N - M + 1)
-      Xp[k, 1:(end-offset), :] = xtde_end[(offset + 1):end, :]
-
-      # Fill in unknown values
-      C_11 = reshape(reshape(C, M, D, M, D)[1:end-offset, :, 1:end-offset, :], (M - offset)*D, (M - offset)*D)
-      C_21 = reshape(reshape(C, M, D, M, D)[end-offset+1:end, :, 1:end-offset, :], :, (M - offset)*D)
-
-      # Add small value to diagonal to fix issues with inversion
-      C_11 += 1e-8*I
-
-      C_11_inv = inv(C_11)
-      Xp[k, (end-offset+1):end, :] = C_21*C_11_inv*reshape(Xp[k, 1:end-offset, :], D*(M - offset))
-   end
-
-   Xp = reshape(Xp, N, M*D)
-
-   EW, EV = eigen(C)
-
-   EW = reverse(EW)
-   EV = reverse(EV, dims=2)
-
-   return EW, EV, Xp
-end
-
-function mssa_cp2(x::Array{Float64, 2}, M::Int64; C=nothing)
-   N, D = size(x)
-
-   idx = Hankel([float(i) for i in 1:N-M+1], [float(i) for i in N-M+1:N])
-   idx = round.(Int, idx)
-   xtde = zeros(N-M+1, M, D)
-
-   for d=1:D
-      xtde[:, :, d] = x[:, d][idx]
-   end
-   xtde = reshape(xtde, N-M+1, D*M, 1)[:, :, 1]
-
-   if C == nothing
-      C = xtde'*xtde/(N-M+1)
-   end
-
-   Xp = zeros(N, M*D)
-
-   Xp[M:end, :] = xtde
-
-   Xp = reshape(Xp, N, M, D)
-
-   xtde_end = reshape(xtde[1, :], M, D)
-   for k=M-1:-1:1
-      # Fill in upper diagonal with known values
-      offset = M - k
-      Xp[k, offset+1:end, :] = xtde_end[1:end-offset, :]
-
-      # Fill in unknown values
-      C_11 = reshape(reshape(C, M, D, M, D)[offset+1:end, :, offset+1:end, :], (M - offset)*D, (M - offset)*D)
-      C_21 = reshape(reshape(C, M, D, M, D)[1:offset, :, offset+1:end, :], :, (M - offset)*D)
-
-      # Add small value to diagonal to fix issues with inversion
-      C_11 += 1e-8*I
-
-      C_11_inv = inv(C_11)
-      Xp[k, 1:offset, :] = C_21*C_11_inv*reshape(Xp[k, (offset+1):end, :], D*(M - offset))
-   end
-
-   Xp = reshape(Xp, N, M*D)
-
-   EW, EV = eigen(C)
-
-   EW = reverse(EW)
-   EV = reverse(EV, dims=2)
-
-   return EW, EV, Xp, C
-end
-
 function precomp(C, M, D)
    C_conds = Array{Array{Float64, 2}, 1}()
 
@@ -255,6 +156,76 @@ function transform1(x, EV::Array{Float64, 2}, M, D, ks)
       end
    end
    return R
+end
+
+function transform_cp(x::Array{Float64, 2}, M::Int64, C_conds)
+   # Method from "Singular Spectrum Analysis With Conditional Predictions for
+   # Real-Time State Estimation and Forecasting", Ogrosky et al. (2019)
+
+   N, D = size(x)
+
+   idx = Hankel([float(i) for i in 1:N-M+1], [float(i) for i in N-M+1:N])
+   idx = round.(Int, idx)
+   xtde = zeros(N-M+1, M, D)
+
+   for d=1:D
+      xtde[:, :, d] = x[:, d][idx]
+   end
+   xtde = reshape(xtde, N-M+1, D*M, 1)[:, :, 1]
+
+   Xp = zeros(N, M*D)
+
+   Xp[1:N-M+1, :] = xtde
+
+   Xp = reshape(Xp, N, M, D)
+
+   xtde_end = reshape(xtde[end, :], M, D)
+   for k=(N-M+2):N
+      # Fill in upper diagonal with known values
+      offset = k - (N - M + 1)
+      Xp[k, 1:(end-offset), :] = xtde_end[(offset + 1):end, :]
+
+      # Fill in unknown values
+      C_cond = C_conds[offset]
+      Xp[k, (end-offset+1):end, :] = C_cond*reshape(Xp[k, 1:end-offset, :], D*(M - offset))
+   end
+
+   Xp = reshape(Xp, N, M*D)
+
+   return Xp
+end
+
+function transform_cp_backwards(x::Array{Float64, 2}, M::Int64, C_conds)
+   N, D = size(x)
+
+   idx = Hankel([float(i) for i in 1:N-M+1], [float(i) for i in N-M+1:N])
+   idx = round.(Int, idx)
+   xtde = zeros(N-M+1, M, D)
+
+   for d=1:D
+      xtde[:, :, d] = x[:, d][idx]
+   end
+   xtde = reshape(xtde, N-M+1, D*M, 1)[:, :, 1]
+
+   Xp = zeros(N, M*D)
+
+   Xp[M:end, :] = xtde
+
+   Xp = reshape(Xp, N, M, D)
+
+   xtde_end = reshape(xtde[1, :], M, D)
+   for k=M-1:-1:1
+      # Fill in upper diagonal with known values
+      offset = M - k
+      Xp[k, offset+1:end, :] = xtde_end[1:end-offset, :]
+
+      C_cond = C_conds[offset]
+      Xp[k, 1:offset, :] = C_cond*reshape(Xp[k, (offset+1):end, :], D*(M - offset))
+   end
+
+   Xp = reshape(Xp, N, M*D)
+
+   return Xp
 end
 
 function transform_cp_backwards(x::Array{Float64, 2}, M::Int64, C_conds)
