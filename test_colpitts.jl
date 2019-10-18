@@ -1,14 +1,14 @@
-using Distributed
+#using Distributed
 
-rmprocs(procs())
-addprocs()
+#rmprocs(procs())
+#addprocs()
 
-@everywhere include("models.jl")
-@everywhere include("integrators.jl")
-@everywhere include("run_da_ssa.jl")
-@everywhere using .Models
-@everywhere using .Integrators
-@everywhere using .run_da_ssa
+include("models.jl")
+include("integrators.jl")
+include("run_da_ssa.jl")
+using .Models
+using .Integrators
+using .run_da_ssa
 
 M = 30
 D = 9
@@ -19,16 +19,16 @@ modes = 2:3
 model = Models.colpitts_true
 model_err = Models.colpitts_err
 integrator = Integrators.rk4
-outfreq = 4
+outfreq = 10
 Δt = 0.1
 m = 20
-cycles = 1000
-window = 3.0
-inflation1 = 1.2
-inflation2 = 1.27
+cycles = 100
+window = outfreq*Δt
+inflation1 = 1.1
+inflation2 = 1.1
 record_length = 10000.0
 obs_err_pct = 0.1
-ens_err_pct = 0.1
+ens_err_pct = 0.01
 transient = 500
 cov = false
 

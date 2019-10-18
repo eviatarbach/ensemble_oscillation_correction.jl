@@ -22,16 +22,19 @@ function etkf_da_ssa_compare(; model, model_err, integrator, m, M, D, k, modes,
                              ens_err_pct, transient, cov=false)
     u0 = randn(D)
 
-    tree_nature, EW_nature, EV_nature, y_nature, r_nature = Embedding.create_tree(model=model, record_length=record_length,
+    tree_nature, EW_nature, EV_nature, y_nature, r_nature, C1 = Embedding.create_tree(model=model, record_length=record_length,
                                             integrator=integrator, Δt=Δt, u0=u0,
                                             transient=transient, outfreq=outfreq,
                                             obs_err_pct=obs_err_pct, osc_vars=osc_vars,
                                             D=D, M=M, modes=modes)
 
-    tree_model, EW_model, EV_model, y_model, r_model = Embedding.create_tree(model=model_err, record_length=record_length,
+    tree_model, EW_model, EV_model, y_model, r_model, C2 = Embedding.create_tree(model=model_err, record_length=record_length,
                                             integrator=integrator, Δt=Δt, u0=u0,
                                             transient=transient, outfreq=outfreq,
                                             obs_err_pct=0, osc_vars=1:D, D=D, M=M, modes=modes)
+
+    C_conds = Embedding.precomp(C2, M, D, 'b')
+    C_conds2 = Embedding.precomp(C1, M, D, 'b')
 
     ssa_info_nature = SSA_Info(EW_nature, EV_nature)
     ssa_info_model = SSA_Info(EW_model, EV_model)
@@ -51,14 +54,17 @@ function etkf_da_ssa_compare(; model, model_err, integrator, m, M, D, k, modes,
                               window=window, cycles=cycles, outfreq=outfreq,
                               D=D, k=k, M=M, r1=r_nature, r2=r_model, tree1=tree_nature,
                               tree2=tree_model, H=H, psrm=true, inflation=inflation1,
-                              osc_vars=osc_vars, cov=cov)
+                              osc_vars=osc_vars, cov=cov, EV=EV_model, EV2=EV_nature, modes=modes,
+                              C_conds=C_conds, C_conds2=C_conds2)
 
     da_info2 = DA_SSA.ETKF_SSA(E=copy(E), model=model, model_err=model_err,
                                integrator=integrator, R=R, m=m, Δt=Δt,
                                window=window, cycles=cycles, outfreq=outfreq,
                                D=D, k=k, M=M, r1=r_nature, r2=r_model, tree1=tree_nature,
-                               tree2=tree_model, H=H, psrm=false,
-                               inflation=inflation2, osc_vars=osc_vars, cov=cov)
+                               tree2=tree_model, H=H, psrm=false, EV2=EV_nature,
+                               inflation=inflation2, osc_vars=osc_vars, cov=cov,
+                               EV=EV_model, modes=modes, C_conds=C_conds,
+                               C_conds2=C_conds2)
 
     return da_info1, da_info2, ssa_info_nature, ssa_info_model
 end

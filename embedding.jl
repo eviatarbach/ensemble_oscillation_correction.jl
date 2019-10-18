@@ -242,6 +242,27 @@ function obs_operator1(EV, M, D, k)
    return vcat([transform1(reshape(A[:, i], n, D), EV, M, D, k) for i=1:n*D]...)
 end
 
+function reconstruct_cp(X::Array{Float64, 2}, EV::Array{Float64, 2}, M::Int64,
+                     D::Int64, ks)
+   N = size(X)[1] + M - 1
+   A = X*EV
+   R = zeros(length(ks), D)
+
+   for (ik, k) in enumerate(ks)
+      ek = reshape(EV[:, k], M, D)
+      n = M + 1
+
+      M_n = M
+      L_n = 1
+      U_n = M
+
+      for d=1:D
+         R[ik, d] = 1/M_n*sum([A[n - m + 1, k]*ek[m, d] for m=L_n:U_n])
+      end
+   end
+   return R
+end
+
 function estimate_errs(osc, tree, data, pcs, max_k=30)
    N, D = size(data)
 
@@ -268,13 +289,13 @@ function create_tree(; model, Δt, outfreq, obs_err_pct, M, record_length, trans
       y = y[:, osc_vars]
    end
 
-   EW, EV, X = Embedding.mssa(y, M)
+   EW, EV, X, C = Embedding.mssa(y, M)
 
    r = sum(Embedding.reconstruct(X, EV, M, length(osc_vars), modes),
            dims=1)[1, :, :]
 
    tree = KDTree(copy(y'))
 
-   return tree, EW, EV, y, r
+   return tree, EW, EV, y, r, C
 end
 end

@@ -28,6 +28,7 @@ obs_err_pct = 0.1
 ens_err_pct = 0.01
 transient = 500
 cov = false
+k = 1
 
 info1, info2 = run_da_ssa.etkf_da_ssa_compare(model=model, model_err=model_err,
                                               M=M, D=D, modes=modes,
@@ -39,4 +40,4 @@ info1, info2 = run_da_ssa.etkf_da_ssa_compare(model=model, model_err=model_err,
                                               record_length=record_length,
                                               obs_err_pct=obs_err_pct,
                                               ens_err_pct=ens_err_pct,
-                                              transient=transient, cov=cov)
+                                              transient=transient, cov=cov, k=k)

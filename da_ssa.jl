@@ -2,6 +2,10 @@ module DA_SSA
 
 export ETKF_SSA
 
+include("embedding.jl")
+
+using .Embedding
+
 using Statistics
 using LinearAlgebra
 using Distributed
@@ -21,7 +25,7 @@ function ETKF_SSA(; E::Array{Float64, 2}, model, model_err, integrator,
                   R::Symmetric{Float64, Array{Float64, 2}}, m::Int64,
                   Δt::Float64, window::Float64, cycles::Int64, outfreq::Int64,
                   D::Int64, M::Int64, k, r1, r2, tree1, tree2, psrm=true, H=I,
-                  inflation=1.0, osc_vars=1:D, cov=false)
+                  inflation=1.0, osc_vars=1:D, cov=false, EV, EV2, C_conds, C_conds2, modes)
     if H != I
         p = size(H)[1]
     else
@@ -86,12 +90,29 @@ function ETKF_SSA(; E::Array{Float64, 2}, model, model_err, integrator,
         append!(spread, mean(std(E, dims=2)))
 
         for i=1:m
-            E[:, i] = integrator(model_err, E[:, i], t, t + window, Δt)
+            #E[:, i] = integrator(model_err, E[:, i], t, t + window, Δt)
             if psrm
                 # To improve performance, should do tree searches for all
                 # ensemble members at once
-                inc = -mean(r2[knn(tree2, E[osc_vars, i], k)[1], :], dims=1) + mean(r1[knn(tree1, E[osc_vars, i], k)[1], :], dims=1)
-                E[:, i] += (H')*(H_osc')*inc'
+                #future = vcat(E[:, i]', integrator(model_err, E[:, i], t + window, t + window*(M+1), Δt, inplace=false))[1:outfreq:end, :]
+                #pred = sum(Embedding.reconstruct_cp(Embedding.transform_cp(future, M, 'b', C_conds), EV, M, D, modes), dims=1)[1, :]
+                #println(i)
+                #println(E[:, i])
+                #println(pred)
+                #future = vcat(E[:, i]', integrator(model, E[:, i], t + window, t + window*(M+1), Δt, inplace=false))[1:outfreq:end, :]
+                #pred2 = sum(Embedding.reconstruct_cp(Embedding.transform_cp(future, M, 'b', C_conds2), EV2, M, D, modes), dims=1)[1, :]
+                #println(pred2)
+                inc = -mean(r2[filter((e)->e<size(r2)[1], knn(tree2, E[osc_vars, i], k)[1] .+ 1), :], dims=1) + mean(r1[filter((e)->e<size(r1)[1], knn(tree1, E[osc_vars, i], k)[1] .+ 1), :], dims=1)
+                #inc = -pred' + mean(r1[knn(tree1, E[osc_vars, i], k)[1], :], dims=1)
+                #inc = (-pred' + pred2').^3
+                #E[:, i] += (H')*(H_osc')*inc'
+            end
+            E[:, i] = integrator(model_err, E[:, i], t, t + window, Δt)
+            #println(E[:, i])
+            if psrm
+                if (~any(isnan.(inc)))
+                    E[:, i] += (H')*(H_osc')*inc'
+                end
             end
         end
 
