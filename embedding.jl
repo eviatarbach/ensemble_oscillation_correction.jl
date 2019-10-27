@@ -250,7 +250,7 @@ function reconstruct_cp(X::Array{Float64, 2}, EV::Array{Float64, 2}, M::Int64,
 
    for (ik, k) in enumerate(ks)
       ek = reshape(EV[:, k], M, D)
-      n = M + 1
+      n = M
 
       M_n = M
       L_n = 1
@@ -279,7 +279,7 @@ function estimate_errs(osc, tree, data, pcs, max_k=30)
 end
 
 function create_tree(; model, Δt, outfreq, obs_err_pct, M, record_length, transient, u0, D,
-                     osc_vars, modes, integrator)
+                     osc_vars, modes, integrator, pcs=nothing)
    y = integrator(model, u0, 0., record_length, Δt; inplace=false)[(transient + 1):outfreq:end, :]
    if (obs_err_pct > 0)
       R = Symmetric(diagm(0 => obs_err_pct*std(y, dims=1)[1, :]))
@@ -294,7 +294,13 @@ function create_tree(; model, Δt, outfreq, obs_err_pct, M, record_length, trans
    r = sum(Embedding.reconstruct(X, EV, M, length(osc_vars), modes),
            dims=1)[1, :, :]
 
-   tree = KDTree(copy(y'))
+   if pcs == nothing
+      tree = KDTree(copy(y'))
+   else
+      _, _, v = svd(r)
+      v = v[:, 1:pcs]
+      tree = KDTree(copy(y'))
+   end
 
    return tree, EW, EV, y, r, C
 end
