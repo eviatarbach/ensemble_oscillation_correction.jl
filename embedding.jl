@@ -143,8 +143,11 @@ function transform(x, n, EV::Array{Float64, 2}, M, D, ks)
 
    for (ik, k) in enumerate(ks)
       ek = reshape(EV[:, k], M, D)
-      for d=1:D
-         R[ik, d] = 1/M*sum([sum([sum([x[n - m + mp, dp]*ek[mp, dp] for mp=1:M]) for dp=1:D])*ek[m, d] for m=1:M])
+      for m=1:M
+         inner_sum = sum([sum([x[n - m + mp, dp]*ek[mp, dp] for mp=1:M]) for dp=1:D])
+         for d=1:D
+            R[ik, d] += 1/M*inner_sum*ek[m, d]
+         end
       end
    end
    return R
