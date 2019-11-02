@@ -34,7 +34,7 @@ function ETKF_SSA(; E::Array{Float64, 2}, model, model_err, integrator,
                   Δt::Float64, window::Int64, cycles::Int64, outfreq::Int64,
                   D::Int64, M::Int64, k, r, r_err, tree_err, tree_r_err, tree, tree_r, psrm=true, H=I,
                   inflation=1.0, osc_vars=1:D, cov=false, modes, da=true)
-    #da = false
+    da = false
     if H != I
         p = size(H)[1]
     else
@@ -99,18 +99,18 @@ function ETKF_SSA(; E::Array{Float64, 2}, model, model_err, integrator,
             Ω = real((I + Y'*R_inv*Y)^(-1))
             w = Ω*Y'*R_inv*(y - H*x_m)
 
-            if psrm & (r_forecast != nothing)
-                r_ens = vcat([find_point(r_err, tree_err, E[:, i], k, 0) for i=1:m]...)
-                r_errs = sqrt.(mean((r_ens .- r_forecast).^2, dims=2))
-                weights = 1 ./ ((r_errs)')
-                weights = (weights .+ mean(weights))/2
-                w_std = std(w)
-                w = w .* weights
-                w = w/std(w)*w_std
+            #if psrm & (r_forecast != nothing)
+            #    r_ens = vcat([find_point(r_err, tree_err, E[:, i], k, 0) for i=1:m]...)
+            #    r_errs = sqrt.(mean((r_ens .- r_forecast).^2, dims=2))
+            #    weights = 1 ./ ((r_errs)')
+            #    weights = (weights .+ mean(weights))/2
+            #    w_std = std(w)
+            #    w = w .* weights
+            #    w = w/std(w)*w_std
                 #w = w .- mean(w)
                 #println(mean(w))
                 #w = w .- mean(w)
-            end
+            #end
 
             E = real(x_m .+ X*(w .+ sqrt(m - 1)*Ω^(1/2)))
         else
@@ -118,13 +118,14 @@ function ETKF_SSA(; E::Array{Float64, 2}, model, model_err, integrator,
             append!(spread, ens_spread)
             E = x_true .+ (E .- x_true) ./ (mean(std(E, dims=2)))
         end
-        if false#psrm & (r_forecast != nothing)# & (ens_spread > mean(spread))
+        if psrm & (r_forecast != nothing)# & (ens_spread > mean(spread))
             r_ens = vcat([find_point(r_err, tree_err, E[:, i], k, 0) for i=1:m]...)
             r_errs = sqrt.(mean((r_ens .- r_forecast).^2, dims=2))
             r_spread = std(r_errs)
             append!(r_spreads, r_spread)
 
-            weights = 1 ./ ((r_errs.^2)')
+            weights = (1 ./ ((r_errs)')) .^ 4
+            println(maximum(weights))
             #weights = (weights .+ mean(weights))/2
             #sum_w = sum(w)
             #w = w .* (0.01*(1 ./ r_err))
