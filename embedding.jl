@@ -246,14 +246,14 @@ function obs_operator1(EV, M, D, k)
 end
 
 function reconstruct_cp(X::Array{Float64, 2}, EV::Array{Float64, 2}, M::Int64,
-                     D::Int64, ks)
+                     D::Int64, ks, n=M)
    N = size(X)[1] + M - 1
    A = X*EV
    R = zeros(length(ks), D)
 
    for (ik, k) in enumerate(ks)
       ek = reshape(EV[:, k], M, D)
-      n = M
+      n = M  # Is this right for forward?
 
       M_n = M
       L_n = 1
@@ -299,12 +299,13 @@ function create_tree(; model, Δt, outfreq, obs_err_pct, M, record_length, trans
 
    if pcs == nothing
       tree = KDTree(copy(y'))
+      tree_r = KDTree(copy(r'))
    else
       _, _, v = svd(r)
       v = v[:, 1:pcs]
       tree = KDTree(copy(y'))
    end
 
-   return tree, EW, EV, y, r, C
+   return tree, tree_r, EW, EV, y, r, C
 end
 end

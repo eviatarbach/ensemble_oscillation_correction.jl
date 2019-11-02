@@ -16,7 +16,7 @@ D = 9
 outfreq = 4
 modes = 1:6
 
-y = rk4(model, randn(9), 0., 1550.0 - Δt, Δt, inplace=false)[500:outfreq:end, :]
+y = Integrators.rk4(model, randn(9), 0., 1550.0 - Δt, Δt, inplace=false)[500:outfreq:end, :]
 
 EW, EV, X, C = Embedding.mssa(copy(y)[1:end, :], M)
 C_conds = Embedding.precomp(C, M, D, 'f')
