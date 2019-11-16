@@ -1,6 +1,7 @@
 module run_da_ssa
 
 using LinearAlgebra
+using Statistics
 
 using Distributions
 using NearestNeighbors
@@ -52,13 +53,15 @@ function etkf_da_ssa_compare(; model, model_err, integrator, m, M, D, k, modes,
 
     #E += rand(ens_err, m)
 
+    stds = std(y_nature, dims=1)
+
     da_info1 = DA_SSA.ETKF_SSA(E=copy(E), model=model, model_err=model_err,
                               integrator=integrator, R=R, m=m, Δt=Δt,
                               window=window, cycles=cycles, outfreq=outfreq,
                               D=D, k=k, M=M, r=r, r_err=r_err, tree_err=tree_err,
                               tree_r_err=tree_r_err, tree=tree,
                               tree_r=tree_r, H=H, psrm=true, inflation=inflation1,
-                              osc_vars=osc_vars, cov=cov, modes=modes)
+                              osc_vars=osc_vars, cov=cov, modes=modes, stds=stds)
 
     da_info2 = DA_SSA.ETKF_SSA(E=copy(E), model=model, model_err=model_err,
                                integrator=integrator, R=R, m=m, Δt=Δt,
@@ -67,7 +70,7 @@ function etkf_da_ssa_compare(; model, model_err, integrator, m, M, D, k, modes,
                                tree_r_err=tree_r_err, tree=tree,
                                tree_r=tree_r, H=H, psrm=false,
                                inflation=inflation2, osc_vars=osc_vars, cov=cov,
-                               modes=modes)
+                               modes=modes, stds=stds)
 
     return da_info1, da_info2, ssa_info_nature
 end
