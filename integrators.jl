@@ -3,7 +3,7 @@ module Integrators
 using Statistics
 
 using FFTW
-using DSP
+#using DSP
 
 export rk4, ks_integrate
 

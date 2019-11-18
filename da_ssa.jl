@@ -33,7 +33,8 @@ function ETKF_SSA(; E::Array{Float64, 2}, model, model_err, integrator,
                   R::Symmetric{Float64, Array{Float64, 2}}, m::Int64,
                   Δt::Float64, window::Int64, cycles::Int64, outfreq::Int64,
                   D::Int64, M::Int64, k, r, r_err, tree_err, tree_r_err, tree, tree_r, psrm=true, H=I,
-                  inflation=1.0, osc_vars=1:D, cov=false, modes, da=true, stds)
+                  inflation=1.0, osc_vars=1:D, cov=false, modes, da=true, stds,
+                  means)
     da = false
     if H != I
         p = size(H)[1]
@@ -167,7 +168,7 @@ function ETKF_SSA(; E::Array{Float64, 2}, model, model_err, integrator,
 
         t += window*outfreq*Δt
     end
-    return DA_Info(errs, errs_free, spread, hist, alphas)
+    return DA_Info(errs, errs_free, spread, hist, r_spreads)
 end
 
 end
