@@ -8,6 +8,7 @@ using Distributions
 
 struct Forecast_Info
     errs
+    errs_uncorr
     spread
     r_errs
     ens_errs
@@ -24,10 +25,11 @@ end
 function forecast(; E::Array{Float64, 2}, model, model_err, integrator,
                       m::Int64, Δt::Float64, window::Int64, cycles::Int64,
                       outfreq::Int64, D::Int64, k, k_r, r, tree, tree_r,
-                      osc_vars=1:D, stds, err_pct=0.1, correction)
+                      osc_vars=1:D, stds, err_pct=0.1)
     x_true = E[:, end]
 
     errs = []
+    errs_uncorr = []
     spread = []
     r_errs_hist = []
     ens_errs = []
@@ -39,7 +41,7 @@ function forecast(; E::Array{Float64, 2}, model, model_err, integrator,
         println(cycle)
         x_m = mean(E, dims=2)
 
-        if correction & (r_forecast != nothing)
+        if (r_forecast != nothing)
             r_ens = vcat([find_point(r, tree, E[:, i], k, 0) for i=1:m]...)
             r_errs = sqrt.(mean((r_ens .- r_forecast).^2, dims=2))
             append!(r_errs_hist, r_errs)
@@ -50,6 +52,7 @@ function forecast(; E::Array{Float64, 2}, model, model_err, integrator,
 
             x_m = sum(E .* weights', dims=2)/sum(weights)
             append!(errs, sqrt(mean((x_m .- x_true).^2)))
+            append!(errs_uncorr, sqrt(mean((mean(E, dims=2) .- x_true).^2)))
         else
             append!(errs, sqrt(mean((mean(E, dims=2) .- x_true).^2)))
         end
@@ -73,7 +76,7 @@ function forecast(; E::Array{Float64, 2}, model, model_err, integrator,
 
     ens_errs = reshape(ens_errs, m, :)'
     r_errs_hist = reshape(r_errs_hist, m, :)'
-    return Forecast_Info(errs, spread, r_errs_hist, ens_errs)
+    return Forecast_Info(errs, errs_uncorr, spread, r_errs_hist, ens_errs)
 end
 
 end

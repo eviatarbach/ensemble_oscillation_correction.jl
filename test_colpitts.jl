@@ -30,7 +30,7 @@ ens_err_pct = 0.1
 obs_err_pct = 0.1
 transient = 1000
 
-info1, info2, ssa_info = run_ens_forecast.ens_forecast_compare(model=model, model_err=model_err,
+info, ssa_info = run_ens_forecast.ens_forecast_compare(model=model, model_err=model_err,
                                               M=M, D=D, k=k, k_r=k_r, modes=modes,
                                               osc_vars=osc_vars,
                                               integrator=integrator,

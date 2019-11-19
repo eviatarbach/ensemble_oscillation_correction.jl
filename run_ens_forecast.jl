@@ -30,24 +30,16 @@ function ens_forecast_compare(; model, model_err, integrator, m, M, D, k, k_r, m
 
     ssa_info_nature = SSA_Info(EW_nature, EV_nature)
 
-    R = Symmetric(diagm(0 => obs_err_pct*std(y_nature, dims=1)[1, :]))
-
     E = integrator(model_err, y_nature[end, :], 0.0, m*Δt*outfreq, Δt, inplace=false)[1:outfreq:end, :]'
 
     stds = std(y_nature, dims=1)
 
-    da_info1 = ens_forecast.forecast(E=copy(E), model=model, model_err=model_err,
+    ens_info = ens_forecast.forecast(E=copy(E), model=model, model_err=model_err,
                                integrator=integrator, m=m, Δt=Δt, window=window,
                                cycles=cycles, outfreq=outfreq, D=D, k=k, k_r=k_r,
                                r=r, tree=tree, tree_r=tree_r, osc_vars=osc_vars,
-                               stds=stds, err_pct=ens_err_pct, correction=true)
+                               stds=stds, err_pct=ens_err_pct)
 
-    da_info2 = ens_forecast.forecast(E=copy(E), model=model, model_err=model_err,
-                               integrator=integrator, m=m, Δt=Δt, window=window,
-                               cycles=cycles, outfreq=outfreq, D=D, k=k, k_r=k_r,
-                               r=r, tree=tree, tree_r=tree_r, osc_vars=osc_vars,
-                               stds=stds, err_pct=ens_err_pct, correction=false)
-
-    return da_info1, da_info2, ssa_info_nature
+    return ens_info, ssa_info_nature
 end
 end
