@@ -121,7 +121,7 @@ function ETKF_SSA(; E::Array{Float64, 2}, model, model_err, integrator,
             #E = x_true .+ rand(MvNormal(zeros(D), diagm(0=>(0.01*stds)[:].^2)), m)#(E .- x_true) ./ (mean(std(E, dims=2))) # 10*randn(size(E)...)
         end
         if psrm & (r_forecast != nothing)# & (ens_spread > mean(spread))
-            r_ens = vcat([find_point(r_err, tree_err, E[:, i], k, 0) for i=1:m]...)
+            r_ens = vcat([find_point(r, tree, E[:, i], k, 0) for i=1:m]...)
             r_errs = sqrt.(mean((r_ens .- r_forecast).^2, dims=2))
             r_spread = std(r_errs)
             append!(r_spreads, r_spread)
