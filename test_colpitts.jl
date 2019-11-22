@@ -22,11 +22,11 @@ model_err = Models.colpitts_err
 integrator = Integrators.rk4
 outfreq = 4
 Δt = 0.1
-m = 10
+m = 20
 cycles = 1000
-window = 20
+window = 40
 record_length = 10000.0
-ens_err_pct = 0.1
+ens_err_pct = 0.2
 obs_err_pct = 0.1
 transient = 1000
 

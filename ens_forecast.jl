@@ -27,6 +27,7 @@ function forecast(; E::Array{Float64, 2}, model, model_err, integrator,
                       outfreq::Int64, D::Int64, k, k_r, r, tree, tree_r,
                       osc_vars=1:D, stds, err_pct=0.1)
     x_true = E[:, end]
+    x0 = copy(x_true)
 
     errs = []
     errs_uncorr = []
@@ -50,11 +51,11 @@ function forecast(; E::Array{Float64, 2}, model, model_err, integrator,
             err_estimates = r_errs
             weights = (1 ./ (err_estimates.^2))/sum(1 ./ (err_estimates.^2))
 
-            x_m = sum(E .* weights', dims=2)/sum(weights)
+            x_m = mean(E[:, sortperm(r_errs[:])[1:5]], dims=2)#sum(E .* weights', dims=2)/sum(weights)
             append!(errs, sqrt(mean((x_m .- x_true).^2)))
             append!(errs_uncorr, sqrt(mean((mean(E, dims=2) .- x_true).^2)))
         else
-            append!(errs, sqrt(mean((mean(E, dims=2) .- x_true).^2)))
+            append!(errs_uncorr, sqrt(mean((mean(E, dims=2) .- x_true).^2)))
         end
 
         ens_spread = mean(std(E, dims=2))

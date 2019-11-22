@@ -287,12 +287,10 @@ function create_tree(; model, Δt, outfreq, obs_err_pct, M, record_length, trans
    if (obs_err_pct > 0)
       R = Symmetric(diagm(0 => obs_err_pct*std(y, dims=1)[1, :]))
       obs_err = MvNormal(zeros(D), R/2)
-      y = y[:, osc_vars] + (rand(obs_err, size(y)[1])')[:, osc_vars]
-   else
-      y = y[:, osc_vars]
+      y = y + (rand(obs_err, size(y)[1])')
    end
 
-   EW, EV, X, C = Embedding.mssa(y, M)
+   EW, EV, X, C = Embedding.mssa(y[:, osc_vars], M)
 
    r = sum(Embedding.reconstruct(X, EV, M, length(osc_vars), modes),
            dims=1)[1, :, :]

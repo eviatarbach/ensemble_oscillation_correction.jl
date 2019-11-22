@@ -118,11 +118,11 @@ ferrari_err = (t, u)->ferrari(t, u,
                                    "ω_2" => ω_2 + 0.1, "ϕ" => 0.2*ω_2))
 
 function rossler(t, u, p)
-   n = 6
+   n = 3
    du = zeros(3*n)
    for j=1:n
       x, y, z = u[(j - 1)*3 + 1:(j - 1)*3 + 3]
-      ω = p["ω_0"] + 0.02*(j - 1)
+      ω = p["ω_0"] + (9e-3)*(j - 1)
       du[(j - 1)*3 + 1] = -ω*y - z
       if j == 1
          ym1 = y
@@ -135,16 +135,16 @@ function rossler(t, u, p)
          yp1 = u[j*3 + 2]
       end
       du[(j - 1)*3 + 2] = ω*x + p["α"]*y + p["c"]*(yp1 - 2*y + ym1)
-      du[(j - 1)*3 + 3] = 0.1 + z*(x - 8.5)
+      du[(j - 1)*3 + 3] = 0.4 + z*(x - 8.5)
    end
    return du
 end
 
-rossler_true = (t, u)->rossler(t, u, Dict("α" => 0.15, "c" => 0.12,
+rossler_true = (t, u)->rossler(t, u, Dict("α" => 0.15, "c" => 0.003,
                                           "ω_0" => 1))
 
-rossler_err = (t, u)->rossler(t, u, Dict("α" => 0.15, "c" => 0.12,
-                                         "ω_0" => 1.05))
+rossler_err = (t, u)->rossler(t, u, Dict("α" => 0.16, "c" => 0.003 + 0.001,
+                                         "ω_0" => 1 - 0.05))
 
 function colpitts(t, u, p)
    M = 3
