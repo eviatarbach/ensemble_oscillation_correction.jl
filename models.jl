@@ -45,6 +45,8 @@ function model_error_ssa(; x0, model_true, model_err, integrator, outfreq, Δt, 
    return errs#sqrt.(mean(errs, dims=1))
 end
 
+err_pct = 0.05
+
 function lorenz(t, u, p)
    du = zeros(3)
    du[1] = p["σ"]*(u[2]-u[1])
@@ -82,7 +84,7 @@ peña_err = (t, u)->peña(t, u, Dict("σ" => 10 + 0.1, "b" => 8/3, "r" => 28 + 0
 function ferrari(t, u, p)
    X, Y, Z, P, Q, ψ_r, ψ_i = u
 
-   F = p["F_0"] + p["F_1"]*cos(p["ω_1"]*t) + p["F_2"]*cos(p["ω_2"]*(t - p["ϕ"]))
+   F = p["F_0"] + p["F_1"]*cos(p["ω_1"]*t)# + p["F_2"]*cos(p["ω_2"]*(t - p["ϕ"]))
    du = zeros(7)
    du[1] = -(Y^2 + Z^2) - p["a"]*X + p["a"]*F + p["r"]*p["f"]*(P - X - p["γ"])
    du[2] = X*Y - p["b"]*X*Z - Y + p["G"] + p["r"]*p["f"]*(Q - Y)
@@ -118,11 +120,11 @@ ferrari_err = (t, u)->ferrari(t, u,
                                    "ω_2" => ω_2 + 0.1, "ϕ" => 0.2*ω_2))
 
 function rossler(t, u, p)
-   n = 3
+   n = 2
    du = zeros(3*n)
    for j=1:n
       x, y, z = u[(j - 1)*3 + 1:(j - 1)*3 + 3]
-      ω = p["ω_0"] + (9e-3)*(j - 1)
+      ω = p["ω_0"] + 0.7*(j - 1)
       du[(j - 1)*3 + 1] = -ω*y - z
       if j == 1
          ym1 = y
@@ -143,8 +145,9 @@ end
 rossler_true = (t, u)->rossler(t, u, Dict("α" => 0.15, "c" => 0.003,
                                           "ω_0" => 1))
 
-rossler_err = (t, u)->rossler(t, u, Dict("α" => 0.16, "c" => 0.003 + 0.001,
-                                         "ω_0" => 1 - 0.05))
+rossler_err = (t, u)->rossler(t, u, Dict("α" => 0.15*(1 + err_pct*randn()),
+                                         "c" => 0.003*(1 + err_pct*randn()),
+                                         "ω_0" => 1*(1 + err_pct*randn())))
 
 function colpitts(t, u, p)
    M = 3
@@ -167,27 +170,31 @@ colpitts_true = (t, u)->colpitts(t, u, Dict("p1" => 5.0, "p2" => 0.0797,
                                             "p4" => 0.6898, "c21" => 0.8,
                                             "c32" => 0.9, "c13" => 1.0))
 
-colpitts_err = (t, u)->colpitts(t, u, Dict("p1" => 5.0 + 0.2,
+colpitts_err = (t, u)->colpitts(t, u, Dict("p1" => 5.0 + 0.1,
                                            "p2" => 0.0797 + 0.01,
-                                           "p3" => [3.0, 3.5, 4.0] .- 0.1,
+                                           "p3" => [3.0, 3.5, 4.0],
                                            "p4" => 0.6898, "c21" => 0.8,
                                            "c32" => 0.9, "c13" => 1.0))
 
-function elegant(t, u, p)
-   x, v, y, u = u
-   du = zeros(4)
+function chua(t, u, p)
+   x, y, z = u
 
-   du[1] = v + p["k"]*v*u^2
-   du[2] = -x
-   du[3] = u + p["k"]*u*v^2
-   du[4] = -y
+   du = zeros(3)
+
+   f = p["c"]*x + 0.5*(p["d"] - p["c"])*(abs(x + 1) - abs(x - 1))
+
+   du[1] = p["α"]*(y - x - f)
+   du[2] = x - y + z
+   du[3] = -p["β"]*y
 
    return du
 end
 
-elegant_true = (t, u)->elegant(t, u, Dict("k" => 1))
+chua_true = (t, u)->chua(t, u, Dict("α" => 15.6, "β" => 28, "c" => -0.714,
+                                    "d" => -1.143))
 
-elegant_err = (t, u)->elegant(t, u, Dict("k" => 1.2))
+chua_err = (t, u)->chua(t, u, Dict("α" => 15.6 + 0.1, "β" => 28 - 0.5, "c" => -0.714,
+                                    "d" => -1.143 + 0.1))
 
 function lorenz96(t, u, p)
    N = 36

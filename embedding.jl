@@ -10,6 +10,7 @@ using Distributions
 
 using ToeplitzMatrices
 using NearestNeighbors
+using DifferentialEquations
 
 function mssa(x::Array{Float64, 2}, M::Int64)
    N, D = size(x)
@@ -282,7 +283,7 @@ function estimate_errs(osc, tree, data, pcs, max_k=30)
 end
 
 function create_tree(; model, Δt, outfreq, obs_err_pct, M, record_length, transient, u0, D,
-                     osc_vars, modes, integrator, pcs=nothing)
+                     osc_vars, modes, integrator, pcs=nothing, varimax, brownian_noise)
    y = integrator(model, u0, 0., record_length, Δt; inplace=false)[(transient + 1):outfreq:end, :]
    if (obs_err_pct > 0)
       R = Symmetric(diagm(0 => obs_err_pct*std(y, dims=1)[1, :]))
@@ -290,10 +291,24 @@ function create_tree(; model, Δt, outfreq, obs_err_pct, M, record_length, trans
       y = y + (rand(obs_err, size(y)[1])')
    end
 
+   if (brownian_noise != false)
+      for i=1:D
+         W = WienerProcess(0.0, 0.0)
+         prob = NoiseProblem(W, (0.0, size(y)[1]*brownian_noise))
+         sol = solve(prob; dt=brownian_noise)
+         y[:, i] = y[:, i] + std(y, dims=1)[1, i]*sol.u[1:size(y)[1]]
+      end
+   end
+
    EW, EV, X, C = Embedding.mssa(y[:, osc_vars], M)
 
-   r = sum(Embedding.reconstruct(X, EV, M, length(osc_vars), modes),
-           dims=1)[1, :, :]
+   varimax = true
+   if varimax
+      EW, EV = Embedding.var_rotate!(EW, EV, M, D, 20)
+   end
+
+   r_all = Embedding.reconstruct(X, EV, M, length(osc_vars), modes)
+   r = sum(r_all, dims=1)[1, :, :]
 
    if pcs == nothing
       tree = KDTree(copy(y'))

@@ -1,5 +1,9 @@
 module ens_forecast
 
+include("embedding.jl")
+
+using .Embedding
+
 using Statistics
 using LinearAlgebra
 
@@ -12,6 +16,9 @@ struct Forecast_Info
     spread
     r_errs
     ens_errs
+    ens
+    x_trues
+    errs_m
 end
 
 function find_point(r, tree, p, k, f)
@@ -22,10 +29,16 @@ function find_point(r, tree, p, k, f)
     return sum(dist .* r[ind .+ f, :], dims=1)/sum(dist)
 end
 
+function find_point2(model, p, C_conds, outfreq, M, Δt, modes)
+    future = vcat(p', integrator(model, p, 0.0, outfreq*Δt*(M-1), Δt, inplace=false))[1:outfreq:end, :]
+    pred = sum(Embedding.reconstruct_cp(Embedding.transform_cp(future, M, 'b', C_conds), EV, M, D, modes), dims=1)[1, :]
+    return pred
+end
+
 function forecast(; E::Array{Float64, 2}, model, model_err, integrator,
                       m::Int64, Δt::Float64, window::Int64, cycles::Int64,
                       outfreq::Int64, D::Int64, k, k_r, r, tree, tree_r,
-                      osc_vars=1:D, stds, err_pct=0.1)
+                      osc_vars=1:D, stds, means, err_pct, mp)
     x_true = E[:, end]
     x0 = copy(x_true)
 
@@ -34,6 +47,9 @@ function forecast(; E::Array{Float64, 2}, model, model_err, integrator,
     spread = []
     r_errs_hist = []
     ens_errs = []
+    ens = []
+    x_trues = []
+    errs_m = []
 
     t = 0.0
     r_forecast = nothing
@@ -51,9 +67,12 @@ function forecast(; E::Array{Float64, 2}, model, model_err, integrator,
             err_estimates = r_errs
             weights = (1 ./ (err_estimates.^2))/sum(1 ./ (err_estimates.^2))
 
-            x_m = mean(E[:, sortperm(r_errs[:])[1:5]], dims=2)#sum(E .* weights', dims=2)/sum(weights)
+            x_m = mean(E[:, sortperm(r_errs[:])[1:mp]], dims=2)#sum(E .* weights', dims=2)/sum(weights)
             append!(errs, sqrt(mean((x_m .- x_true).^2)))
             append!(errs_uncorr, sqrt(mean((mean(E, dims=2) .- x_true).^2)))
+            append!(ens, E)
+            append!(x_trues, x_true)
+            append!(errs_m, sqrt(mean((means .- x_true).^2)))
         else
             append!(errs_uncorr, sqrt(mean((mean(E, dims=2) .- x_true).^2)))
         end
@@ -77,7 +96,10 @@ function forecast(; E::Array{Float64, 2}, model, model_err, integrator,
 
     ens_errs = reshape(ens_errs, m, :)'
     r_errs_hist = reshape(r_errs_hist, m, :)'
-    return Forecast_Info(errs, errs_uncorr, spread, r_errs_hist, ens_errs)
+    ens = reshape(ens, D, m, :)
+    x_trues = reshape(x_trues, D, :)
+    return Forecast_Info(errs, errs_uncorr, spread, r_errs_hist, ens_errs, ens,
+                         x_trues, errs_m)
 end
 
 end
