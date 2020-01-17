@@ -26,7 +26,7 @@ end
 function find_point(r, tree, p, k, f)
     ind, dist = knn(tree, p[:], k)
     mask = (ind .+ f) .<= size(tree.data)[1]
-    dist = dist[mask]
+    dist = 1 ./ dist[mask]
     ind = ind[mask]
     return sum(dist .* r[ind .+ f, :], dims=1)/sum(dist)
 end

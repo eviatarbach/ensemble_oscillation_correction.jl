@@ -10,21 +10,21 @@ using .Models
 using .Integrators
 using .run_ens_forecast
 
-M = 60
-D = 3
+M = 30
+D = 9
 k = 41
 k_r = 20
 
-osc_vars = 1:3
-modes = 3:4
-model = Models.chua_true
-model_err = Models.chua_err
+osc_vars = 1:D
+modes = 2:3
+model = Models.colpitts_true
+model_err = Models.colpitts_true
 integrator = Integrators.rk4
-outfreq = 1
+outfreq = 4
 Δt = 0.1
 m = 20
-cycles = 1000
-window = 25
+cycles = 100
+window = 50
 record_length = 10000.0
 ens_err_pct = 0.2
 obs_err_pct = 0.1
@@ -32,7 +32,7 @@ brownian_noise = false
 transient = 2000
 mp = 9
 
-y0 = [0.7, 0, 0]#rand(D)
+y0 = rand(D)
 
 info, ssa_info = run_ens_forecast.ens_forecast_compare(model=model, model_err=model_err,
                                               M=M, D=D, k=k, k_r=k_r, modes=modes,
