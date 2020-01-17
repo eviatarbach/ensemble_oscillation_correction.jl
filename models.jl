@@ -45,7 +45,7 @@ function model_error_ssa(; x0, model_true, model_err, integrator, outfreq, Δt, 
    return errs#sqrt.(mean(errs, dims=1))
 end
 
-err_pct = 0.05
+err_pct = 0.1
 
 function lorenz(t, u, p)
    du = zeros(3)
@@ -145,9 +145,9 @@ end
 rossler_true = (t, u)->rossler(t, u, Dict("α" => 0.15, "c" => 0.003,
                                           "ω_0" => 1))
 
-rossler_err = (t, u)->rossler(t, u, Dict("α" => 0.15*(1 + err_pct*randn()),
-                                         "c" => 0.003*(1 + err_pct*randn()),
-                                         "ω_0" => 1*(1 + err_pct*randn())))
+
+rossler_err = (t, u)->rossler(t, u, Dict("α" => 0.16, "c" => 0.003 + 0.001,
+                                         "ω_0" => 1 - 0.05))
 
 function colpitts(t, u, p)
    M = 3

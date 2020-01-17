@@ -10,7 +10,7 @@ using Distributions
 
 using ToeplitzMatrices
 using NearestNeighbors
-using DifferentialEquations
+#using DifferentialEquations
 
 function mssa(x::Array{Float64, 2}, M::Int64)
    N, D = size(x)
@@ -291,18 +291,18 @@ function create_tree(; model, Δt, outfreq, obs_err_pct, M, record_length, trans
       y = y + (rand(obs_err, size(y)[1])')
    end
 
-   if (brownian_noise != false)
-      for i=1:D
-         W = WienerProcess(0.0, 0.0)
-         prob = NoiseProblem(W, (0.0, size(y)[1]*brownian_noise))
-         sol = solve(prob; dt=brownian_noise)
-         y[:, i] = y[:, i] + std(y, dims=1)[1, i]*sol.u[1:size(y)[1]]
-      end
-   end
+#   if (brownian_noise != false)
+#      for i=1:D
+#         W = WienerProcess(0.0, 0.0)
+#         prob = NoiseProblem(W, (0.0, size(y)[1]*brownian_noise))
+#         sol = solve(prob; dt=brownian_noise)
+#         y[:, i] = y[:, i] + std(y, dims=1)[1, i]*sol.u[1:size(y)[1]]
+#      end
+#   end
 
    EW, EV, X, C = Embedding.mssa(y[:, osc_vars], M)
 
-   varimax = true
+   varimax = false
    if varimax
       EW, EV = Embedding.var_rotate!(EW, EV, M, D, 20)
    end
