@@ -2,6 +2,7 @@ module run_ens_forecast
 
 using LinearAlgebra
 using Statistics
+using Random
 
 using Distributions
 using NearestNeighbors
@@ -15,6 +16,8 @@ using .ens_forecast
 struct SSA_Info
     EW
     EV
+    r
+    y
 end
 
 nanmean(x) = mean(filter(!isnan,x))
@@ -22,8 +25,9 @@ nanmean(x,y) = mapslices(nanmean,x,dims=y)
 
 function optimal_ens(info)
     D, m, N = size(info.ens)
-    errs = [[sqrt(mean(((nanmean(info.ens[:, sortperm(info.r_errs[j, :])[1:i], j], 2) .- info.x_trues[:, j]).^2))) for i=1:m] for j=1:N]
-    return mean(hcat(errs...), dims=2)
+    errs = [[sqrt(mean((nanmean(info.ens[:, (sortperm(info.r_errs[j, :]))[1:i], j], 2) - info.x_trues[:, j]).^2)) for j=1:N] for i=1:m]
+    errs_rand = [[sqrt(mean((nanmean(info.ens[:, shuffle(sortperm(info.r_errs[j, :]))[1:i], j], 2) - info.x_trues[:, j]).^2)) for j=1:N] for i=1:m]
+    return mean(hcat(errs...), dims=1)', mean(hcat(errs_rand...), dims=1)'
 end
 
 function ens_forecast_compare(; model, model_err, integrator, m, M, D, k, k_r, modes,
@@ -37,7 +41,7 @@ function ens_forecast_compare(; model, model_err, integrator, m, M, D, k, k_r, m
                                             obs_err_pct=obs_err_pct, osc_vars=osc_vars,
                                             D=D, M=M, modes=modes, varimax=false, brownian_noise=brownian_noise)
 
-    ssa_info_nature = SSA_Info(EW_nature, EV_nature)
+    ssa_info_nature = SSA_Info(EW_nature, EV_nature, r, y_nature)
 
     E = integrator(model_err, y_nature[end, :], 0.0, m*Δt*outfreq, Δt, inplace=false)[1:outfreq:end, :]'
 

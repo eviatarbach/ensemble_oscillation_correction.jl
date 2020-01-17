@@ -11,28 +11,28 @@ using .Integrators
 using .run_ens_forecast
 
 M = 30
-D = 6
+D = 9
 k = 41
 k_r = 20
 
 osc_vars = 1:D
-modes = 1:2
-model = Models.rossler_true
-model_err = Models.rossler_err
+modes = 2:3
+model = Models.colpitts_true
+model_err = Models.colpitts_true
 integrator = Integrators.rk4
 outfreq = 4
 Δt = 0.1
 m = 20
 cycles = 100
-window = 40
+window = 50
 record_length = 10000.0
-ens_err_pct = 0.5
+ens_err_pct = 0.2
 obs_err_pct = 0.1
 brownian_noise = false
 transient = 2000
-mp = 5
+mp = 9
 
-y0 = rand(D)#[0.7, 0, 0]
+y0 = rand(D)
 
 info, ssa_info = run_ens_forecast.ens_forecast_compare(model=model, model_err=model_err,
                                               M=M, D=D, k=k, k_r=k_r, modes=modes,

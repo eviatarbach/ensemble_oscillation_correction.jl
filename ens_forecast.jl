@@ -6,6 +6,7 @@ using .Embedding
 
 using Statistics
 using LinearAlgebra
+using Random
 
 using NearestNeighbors
 using Distributions
@@ -19,12 +20,13 @@ struct Forecast_Info
     ens
     x_trues
     errs_m
+    r_forecasts
 end
 
 function find_point(r, tree, p, k, f)
     ind, dist = knn(tree, p[:], k)
     mask = (ind .+ f) .<= size(tree.data)[1]
-    dist = dist[mask]
+    dist = 1 ./ dist[mask]
     ind = ind[mask]
     return sum(dist .* r[ind .+ f, :], dims=1)/sum(dist)
 end
@@ -50,6 +52,7 @@ function forecast(; E::Array{Float64, 2}, model, model_err, integrator,
     ens = []
     x_trues = []
     errs_m = []
+    r_forecasts = []
 
     t = 0.0
     r_forecast = nothing
@@ -63,11 +66,12 @@ function forecast(; E::Array{Float64, 2}, model, model_err, integrator,
             r_errs = sqrt.(mean((r_ens .- r_forecast).^2, dims=2))
             append!(r_errs_hist, r_errs)
             append!(ens_errs, sqrt.(mean((E .- x_true).^2, dims=1)'))
+            append!(r_forecasts, r_forecast)
 
             err_estimates = r_errs
             weights = (1 ./ (err_estimates.^2))/sum(1 ./ (err_estimates.^2))
 
-            x_m = mean(E[:, sortperm(r_errs[:])[1:mp]], dims=2)#sum(E .* weights', dims=2)/sum(weights)
+            x_m = mean(E[:, (sortperm(r_errs[:]))[1:mp]], dims=2)#sum(E .* weights', dims=2)/sum(weights)
             append!(errs, sqrt(mean((x_m .- x_true).^2)))
             append!(errs_uncorr, sqrt(mean((mean(E, dims=2) .- x_true).^2)))
             append!(ens, E)
@@ -98,8 +102,9 @@ function forecast(; E::Array{Float64, 2}, model, model_err, integrator,
     r_errs_hist = reshape(r_errs_hist, m, :)'
     ens = reshape(ens, D, m, :)
     x_trues = reshape(x_trues, D, :)
+    r_forecasts = reshape(r_forecasts, length(osc_vars), :)
     return Forecast_Info(errs, errs_uncorr, spread, r_errs_hist, ens_errs, ens,
-                         x_trues, errs_m)
+                         x_trues, errs_m, r_forecasts)
 end
 
 end
