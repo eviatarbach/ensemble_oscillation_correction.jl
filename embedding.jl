@@ -302,10 +302,6 @@ function create_tree(; model, Δt, outfreq, obs_err_pct, M, record_length, trans
 
    EW, EV, X, C = Embedding.mssa(y[:, osc_vars], M)
 
-<<<<<<< HEAD
-   varimax = false
-=======
->>>>>>> 914f01d1ae94a9725016abd12b142cd30c43001d
    if varimax
       EW, EV = Embedding.var_rotate!(EW, EV, M, D, 20)
    end
