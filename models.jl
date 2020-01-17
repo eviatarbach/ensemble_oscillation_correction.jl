@@ -145,12 +145,7 @@ end
 rossler_true = (t, u)->rossler(t, u, Dict("α" => 0.15, "c" => 0.003,
                                           "ω_0" => 1))
 
-<<<<<<< HEAD
-
-rossler_err = (t, u)->rossler(t, u, Dict("α" => 0.16, "c" => 0.003 + 0.001,
-=======
 rossler_err = (t, u)->rossler(t, u, Dict("α" => 0.16, "c" => 0.004,
->>>>>>> 914f01d1ae94a9725016abd12b142cd30c43001d
                                          "ω_0" => 1 - 0.05))
 
 function colpitts(t, u, p)
