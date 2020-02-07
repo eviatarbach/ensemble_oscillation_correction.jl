@@ -284,7 +284,10 @@ end
 
 function create_tree(; model, Δt, outfreq, obs_err_pct, M, record_length, transient, u0, D,
                      osc_vars, modes, integrator, pcs=nothing, varimax, brownian_noise)
-   y = integrator(model, u0, 0., record_length, Δt; inplace=false)[(transient + 1):outfreq:end, :]
+   y = integrator(model, u0, 0., record_length, Δt; inplace=false)
+   mu = mean(y[(transient + 1):end, :], dims=1)[:]
+   y = y[(transient + 1):outfreq:end, :] .- mu'
+
    if (obs_err_pct > 0)
       R = Symmetric(diagm(0 => obs_err_pct*std(y, dims=1)[1, :]))
       obs_err = MvNormal(zeros(D), R/2)
@@ -318,6 +321,6 @@ function create_tree(; model, Δt, outfreq, obs_err_pct, M, record_length, trans
       tree = KDTree(copy(y'))
    end
 
-   return tree, tree_r, EW, EV, y, r, C
+   return tree, tree_r, EW, EV, y, r, C, mu
 end
 end

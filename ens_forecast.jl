@@ -40,7 +40,7 @@ end
 function forecast(; E::Array{Float64, 2}, model, model_err, integrator,
                       m::Int64, Δt::Float64, window::Int64, cycles::Int64,
                       outfreq::Int64, D::Int64, k, k_r, r, tree, tree_r,
-                      osc_vars=1:D, stds, means, err_pct, mp)
+                      osc_vars=1:D, stds, means, err_pct, mp, mu)
     x_true = E[:, end]
     x0 = copy(x_true)
 
@@ -90,10 +90,10 @@ function forecast(; E::Array{Float64, 2}, model, model_err, integrator,
         r_forecast = find_point(r, tree_r, p2, k_r, window)
 
         for i=1:m
-            E[:, i] = integrator(model_err, E[:, i], t, t + window*outfreq*Δt, Δt)
+            E[:, i] = integrator((t, u)->model_err(t, u + mu), E[:, i], t, t + window*outfreq*Δt, Δt)
         end
 
-        x_true = integrator(model, x_true, t, t + window*outfreq*Δt, Δt)
+        x_true = integrator((t, u)->model(t, u + mu), x_true, t, t + window*outfreq*Δt, Δt)
 
         t += window*outfreq*Δt
     end
