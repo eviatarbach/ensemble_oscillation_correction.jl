@@ -10,18 +10,18 @@ using Statistics
 
 using NearestNeighbors
 
-D = 6
-model = Models.rossler_true
-#model_err = Models.chua_err
+D = 9
+model = Models.colpitts_true
+model_err = Models.colpitts_err
 integrator = Integrators.rk4
 record_length = 10000.0
 outfreq = 4
 Δt = 0.1
 transient = 500
 M = 30
-modes = 1:2
+modes = 2:3
 k = 41
-k_r = 20
+k_r = 30
 #pcs = 1:6
 
 y0 = rand(D)#[0.7, 0, 0]
@@ -87,8 +87,8 @@ max_lead = 200
 for i_p=M:10:1000-max_lead
     p = y[i_p, :]
     past = y[i_p - (M-1):i_p, :]
-    p2 = find_point3(past, C_conds_f)[M, :]'
-    #p2 = find_point(r, tree, p, 41, 0)
+    #p2 = find_point3(past, C_conds_f)[M, :]'
+    p2 = find_point(r, tree, p, 41, 0)
     #p2 = find_point2(model, p, C_conds_b)
 
     forecast = [find_point(r, tree_r, p2[:], k_r, i) for i=1:max_lead]

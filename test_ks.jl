@@ -1,7 +1,7 @@
 using Distributed
 
-rmprocs(procs())
-addprocs()
+#rmprocs(procs())
+#addprocs()
 
 @everywhere include("models.jl")
 @everywhere include("integrators.jl")

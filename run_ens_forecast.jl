@@ -32,14 +32,14 @@ end
 
 function ens_forecast_compare(; model, model_err, integrator, m, M, D, k, k_r, modes,
                              osc_vars, outfreq, Δt, cycles, window, record_length, obs_err_pct,
-                             ens_err_pct, transient, brownian_noise, y0, mp)
+                             ens_err_pct, transient, brownian_noise, y0, mp, varimax)
     u0 = y0
 
     tree, tree_r, EW_nature, EV_nature, y_nature, r, C1 = Embedding.create_tree(model=model, record_length=record_length,
                                             integrator=integrator, Δt=Δt, u0=u0,
                                             transient=transient, outfreq=outfreq,
                                             obs_err_pct=obs_err_pct, osc_vars=osc_vars,
-                                            D=D, M=M, modes=modes, varimax=false, brownian_noise=brownian_noise)
+                                            D=D, M=M, modes=modes, varimax=varimax, brownian_noise=brownian_noise)
 
     ssa_info_nature = SSA_Info(EW_nature, EV_nature, r, y_nature)
 
