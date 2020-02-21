@@ -149,7 +149,7 @@ rossler_err = (t, u)->rossler(t, u, Dict("α" => 0.16, "c" => 0.004,
                                          "ω_0" => 1 - 0.05))
 
 function colpitts(t, u, p)
-   M = 3
+   M = 2
 
    c = [p["c21"], p["c32"], p["c13"]]
 
@@ -180,7 +180,7 @@ function chua(t, u, p)
 
    du = zeros(3)
 
-   f = p["c"]*x + 0.5*(p["d"] - p["c"])*(abs(x + 1) - abs(x - 1))
+   f = p["m_1"]*x + 0.5*(p["m_0"] - p["m_1"])*(abs(x + 1) - abs(x - 1))
 
    du[1] = p["α"]*(y - x - f)
    du[2] = x - y + z
@@ -189,11 +189,11 @@ function chua(t, u, p)
    return du
 end
 
-chua_true = (t, u)->chua(t, u, Dict("α" => 15.6, "β" => 28, "c" => -0.714,
-                                    "d" => -1.143))
+chua_true = (t, u)->chua(t, u, Dict("α" => 15.6, "β" => 25.58, "m_1" => -5/7,
+                                    "m_0" => -8/7))
 
-chua_err = (t, u)->chua(t, u, Dict("α" => 15.6, "β" => 28 - 0.1, "c" => -0.714,
-                                    "d" => -1.143))
+chua_err = (t, u)->chua(t, u, Dict("α" => 15.7, "β" => 24.58, "m_1" => -5/7,
+                                    "m_0" => -8/7))
 
 function lorenz96(t, u, p)
    N = 36

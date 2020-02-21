@@ -69,9 +69,8 @@ function forecast(; E::Array{Float64, 2}, model, model_err, integrator,
             append!(r_forecasts, r_forecast)
 
             err_estimates = r_errs
-            weights = (1 ./ (err_estimates.^2))/sum(1 ./ (err_estimates.^2))
 
-            x_m = mean(E[:, (sortperm(r_errs[:]))[1:mp]], dims=2)#sum(E .* weights', dims=2)/sum(weights)
+            x_m = mean(E[:, (sortperm(r_errs[:]))[1:mp]], dims=2)
             append!(errs, sqrt(mean((x_m .- x_true).^2)))
             append!(errs_uncorr, sqrt(mean((mean(E, dims=2) .- x_true).^2)))
             append!(ens, E)

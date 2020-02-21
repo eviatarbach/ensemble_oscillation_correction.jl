@@ -12,13 +12,13 @@ using .run_ens_forecast
 
 M = 30
 D = 6
-k = 40
-k_r = 30
+k = 41
+k_r = 20
 
 osc_vars = 1:D
-modes = 2:3
-model = Models.colpitts_true
-model_err = Models.colpitts_err
+modes = 1:2
+model = Models.rossler_true
+model_err = Models.rossler_err
 integrator = Integrators.rk4
 outfreq = 4
 Δt = 0.1
@@ -26,12 +26,12 @@ m = 20
 cycles = 1000
 window = 50
 record_length = 10000.0
-ens_err_pct = 0.2
+ens_err_pct = 0.1
 obs_err_pct = 0.1
 brownian_noise = false
-varimax = false
 transient = 2000
 mp = 9
+varimax = false
 
 y0 = rand(D)
 
