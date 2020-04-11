@@ -26,8 +26,8 @@ nanmean(x,y) = mapslices(nanmean,x,dims=y)
 function optimal_ens(info)
     D, m, N = size(info.ens)
     errs = [[sqrt(mean((nanmean(info.ens[:, (sortperm(info.r_errs[j, :]))[1:i], j], 2) - info.x_trues[:, j]).^2)) for j=1:N] for i=1:m]
-    #errs_rand = [[sqrt(mean((nanmean(info.ens[:, shuffle(sortperm(info.r_errs[j, :]))[1:i], j], 2) - info.x_trues[:, j]).^2)) for j=1:N] for i=1:m]
-    return mean(hcat(errs...), dims=1)'#, mean(hcat(errs_rand...), dims=1)'
+    errs_rand = [[sqrt(mean((nanmean(info.ens[:, shuffle(sortperm(info.r_errs[j, :]))[1:i], j], 2) - info.x_trues[:, j]).^2)) for j=1:N] for i=1:m]
+    return mean(hcat(errs...), dims=1)', mean(hcat(errs_rand...), dims=1)'
 end
 
 function ens_forecast_compare(; model, model_err, integrator, m, M, D, k, k_r, modes,
