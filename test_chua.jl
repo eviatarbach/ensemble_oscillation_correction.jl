@@ -10,7 +10,7 @@ using .Models
 using .Integrators
 using .run_ens_forecast
 
-M = 60
+M = 200
 D = 3
 k = 41
 k_r = 20
@@ -31,7 +31,7 @@ obs_err_pct = 0.1
 brownian_noise = false
 transient = 3000
 mp = 9
-varimax = false
+varimax = true
 
 y0 = [-1.06095, 0.160678, 0.267729]
 

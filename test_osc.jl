@@ -10,21 +10,21 @@ using .Models
 using .Integrators
 using .run_ens_forecast
 
-M = 30
-D = 6
+M = 100
+D = 5
 k = 40
 k_r = 30
 
-osc_vars = 1:D
-modes = 2:3
-model = Models.colpitts_true
-model_err = Models.colpitts_err
+osc_vars = 1:2
+modes = 1:2
+model = Models.osc_true
+model_err = Models.osc_err
 integrator = Integrators.rk4
-outfreq = 4
-Δt = 0.1
+outfreq = 10
+Δt = 0.05
 m = 20
 cycles = 100
-window = 20
+window = 70
 record_length = 10000.0
 ens_err_pct = 0.2
 obs_err_pct = 0.1
@@ -33,7 +33,7 @@ varimax = false
 transient = 2000
 mp = 9
 
-y0 = rand(D)
+y0 = [randn(3)..., 0, 0.3*10]
 
 info, ssa_info = run_ens_forecast.ens_forecast_compare(model=model, model_err=model_err,
                                               M=M, D=D, k=k, k_r=k_r, modes=modes,
