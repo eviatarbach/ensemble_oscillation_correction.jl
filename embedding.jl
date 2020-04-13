@@ -284,7 +284,7 @@ end
 
 function create_tree(; model, Δt, outfreq, obs_err_pct, M, record_length, transient, u0, D,
                      osc_vars, modes, integrator, pcs=nothing, varimax, brownian_noise)
-   y = integrator(model, u0, 0., record_length, Δt; inplace=false)[(transient + 1):outfreq:end, :]
+   y = integrator(model, u0, 0., record_length*outfreq*Δt, Δt; inplace=false)[1:outfreq:end, :][(transient + 1):end, :]
    if (obs_err_pct > 0)
       R = Symmetric(diagm(0 => obs_err_pct*std(y, dims=1)[1, :]))
       obs_err = MvNormal(zeros(D), R/2)

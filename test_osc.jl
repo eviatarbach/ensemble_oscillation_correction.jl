@@ -23,14 +23,14 @@ integrator = Integrators.rk4
 outfreq = 10
 Δt = 0.05
 m = 20
-cycles = 100
+cycles = 1000
 window = 70
-record_length = 10000.0
+record_length = 25000
 ens_err_pct = 0.2
 obs_err_pct = 0.1
 brownian_noise = false
 varimax = false
-transient = 2000
+transient = 3000
 mp = 9
 
 y0 = [randn(3)..., 0, 0.3*10]
