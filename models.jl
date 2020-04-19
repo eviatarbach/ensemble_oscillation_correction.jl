@@ -106,7 +106,7 @@ chua_err = (t, u)->chua(t, u, Dict("α" => 15.7, "β" => 24.58, "m_1" => -5/7,
                                     "m_0" => -8/7))
 
 function lorenz96(t, u, p)
-   N = 9
+   N = 6
 
    # compute state derivatives
    du = zeros(N)
@@ -121,13 +121,13 @@ function lorenz96(t, u, p)
        du[i] = (u[i+1] - u[i-2])*u[i-1] - u[i]
     end
 
-   du .+= p["F"]
+   du .+= p["F"]*cos(p["ω"]*t)
 
    return du
 end
 
-lorenz96_true = (t, u)->lorenz96(t, u, Dict("F" => 8))
-lorenz96_err = (t, u)->lorenz96(t, u, Dict("F" => 8.1))
+lorenz96_true = (t, u)->lorenz96(t, u, Dict("F" => 8, "ω" => 2*pi/50))
+lorenz96_err = (t, u)->lorenz96(t, u, Dict("F" => 8, "ω" => 2*pi/49))
 
 function forced!(du, t, u, p)
    x, y, uu, v = u
@@ -189,8 +189,8 @@ function osc84!(du, t, u, p)
   return du
 end
 
-osc84_true = (du, t, u)->osc84!(du, t, u, Dict("a" => 1/4, "b" => 4, "ϵ" => 3,
-                                               "ω" => 2*pi/73, "F" => 11,
+osc84_true = (du, t, u)->osc84!(du, t, u, Dict("a" => 1/4, "b" => 4, "ϵ" => 0.01,
+                                               "ω" => 2*pi/500, "F" => 1,
                                                "G" => 0.5))
 
 

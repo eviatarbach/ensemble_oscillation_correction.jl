@@ -10,21 +10,21 @@ using Statistics
 
 using NearestNeighbors
 
-D = 9
-model = Models.colpitts_true
-model_err = Models.colpitts_err
+D = 6
+model = Models.lorenz96_true
+model_err = Models.lorenz96_err
 integrator = Integrators.rk4
 record_length = 10000.0
-outfreq = 4
+outfreq = 5
 Δt = 0.1
-transient = 500
-M = 30
-modes = 2:3
-k = 41
-k_r = 30
+transient = 2000
+M = 100
+modes = 1:2
+k = 1
+k_r = 10
 #pcs = 1:6
 
-y0 = rand(D)#[0.7, 0, 0]
+y0 = [0.723667, 0.101699, 0.0719784, 0.923862, 0.321385, 0.579979]#[0.7, 0, 0]
 
 y = integrator(model, y0, 0., record_length - Δt, Δt, inplace=false)[transient:outfreq:end, :]
 #y_err = integrator(model_err, randn(D), 0., record_length - Δt, Δt, inplace=false)[transient:outfreq:end, :]
@@ -88,7 +88,7 @@ for i_p=M:10:1000-max_lead
     p = y[i_p, :]
     past = y[i_p - (M-1):i_p, :]
     #p2 = find_point3(past, C_conds_f)[M, :]'
-    p2 = find_point(r, tree, p, 41, 0)
+    p2 = find_point(r, tree, p, k, 0)
     #p2 = find_point2(model, p, C_conds_b)
 
     forecast = [find_point(r, tree_r, p2[:], k_r, i) for i=1:max_lead]
