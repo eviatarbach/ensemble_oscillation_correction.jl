@@ -10,7 +10,7 @@ using Statistics
 
 using NearestNeighbors
 
-D = 6
+D = 4
 model = Models.lorenz96_true
 model_err = Models.lorenz96_err
 integrator = Integrators.rk4
@@ -20,11 +20,11 @@ outfreq = 5
 transient = 2000
 M = 100
 modes = 1:2
-k = 1
+k = 10
 k_r = 10
 #pcs = 1:6
 
-y0 = [0.723667, 0.101699, 0.0719784, 0.923862, 0.321385, 0.579979]#[0.7, 0, 0]
+y0 = randn(4)#[0.723667, 0.101699, 0.0719784, 0.923862, 0.321385, 0.579979]#[0.7, 0, 0]
 
 y = integrator(model, y0, 0., record_length - Δt, Δt, inplace=false)[transient:outfreq:end, :]
 #y_err = integrator(model_err, randn(D), 0., record_length - Δt, Δt, inplace=false)[transient:outfreq:end, :]

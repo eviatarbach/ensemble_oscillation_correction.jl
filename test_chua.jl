@@ -23,8 +23,8 @@ integrator = Integrators.rk4
 outfreq = 1
 Δt = 0.1
 m = 20
-cycles = 1000
-window = 20
+cycles = 100
+window = 10
 record_length = 25000
 ens_err_pct = 0.2
 obs_err_pct = 0.1
@@ -44,4 +44,5 @@ info, ssa_info = run_ens_forecast.ens_forecast_compare(model=model, model_err=mo
                                               record_length=record_length,
                                               ens_err_pct=ens_err_pct, obs_err_pct=obs_err_pct,
                                               transient=transient, brownian_noise=brownian_noise,
-                                              y0=y0, mp=mp, varimax=varimax)
+                                              y0=y0, mp=mp, varimax=varimax,
+                                              check_bounds=true, test_time=10.0)

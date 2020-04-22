@@ -37,10 +37,16 @@ function find_point2(model, p, C_conds, outfreq, M, Δt, modes)
     return pred
 end
 
+function is_valid(p, model, integrator, t, Δt, test_time, bounds)
+    end_point = integrator(model, p, t, t + test_time, Δt)
+    return all(bounds[1] .<= end_point .<= bounds[2])
+end
+
 function forecast(; E::Array{Float64, 2}, model, model_err, integrator,
                       m::Int64, Δt::Float64, window::Int64, cycles::Int64,
                       outfreq::Int64, D::Int64, k, k_r, r, tree, tree_r,
-                      osc_vars=1:D, stds, means, err_pct, mp)
+                      osc_vars=1:D, stds, means, err_pct, mp, check_bounds,
+                      test_time, bounds)
     x_true = E[:, end]
     x0 = copy(x_true)
 
@@ -82,7 +88,23 @@ function forecast(; E::Array{Float64, 2}, model, model_err, integrator,
 
         ens_spread = mean(std(E, dims=2))
         append!(spread, ens_spread)
-        E = x_true .+ rand(MvNormal(zeros(D), diagm(0=>(err_pct*stds)[:].^2)), m)
+
+        if !check_bounds
+            perts = rand(MvNormal(zeros(D), diagm(0=>(err_pct*stds)[:].^2)), m)
+        else
+            perts = Array{Float64}(undef, D, m)
+            i = 0
+            while i < m
+                pert = rand(MvNormal(zeros(D), diagm(0=>(err_pct*stds)[:].^2)),
+                            1)
+                if is_valid(x_true + pert[:], model_err, integrator, t, Δt, test_time,
+                            bounds)
+                    i += 1
+                    perts[:, i] = pert
+                end
+            end
+        end
+        E = x_true .+ perts
 
         x_m = mean(E, dims=2)
         p2 = find_point(r, tree, x_m, k, 0)

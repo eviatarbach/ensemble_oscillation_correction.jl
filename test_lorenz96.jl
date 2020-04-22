@@ -11,7 +11,7 @@ using .Integrators
 using .run_ens_forecast
 
 M = 100
-D = 6
+D = 4
 k = 10
 k_r = 10
 
@@ -24,7 +24,7 @@ outfreq = 10
 Δt = 0.1
 m = 20
 cycles = 100
-window = 100
+window = 40
 record_length = 100000
 ens_err_pct = 0.2
 obs_err_pct = 0.1
@@ -33,7 +33,7 @@ transient = 3000
 mp = 9
 varimax = false
 
-y0 = [0.723667, 0.101699, 0.0719784, 0.923862, 0.321385, 0.579979]
+y0 = randn(D)#[0.723667, 0.101699, 0.0719784, 0.923862, 0.321385, 0.579979]
 
 info, ssa_info = run_ens_forecast.ens_forecast_compare(model=model, model_err=model_err,
                                               M=M, D=D, k=k, k_r=k_r, modes=modes,
