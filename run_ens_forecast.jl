@@ -33,7 +33,7 @@ end
 function ens_forecast_compare(; model, model_err, integrator, m, M, D, k, k_r, modes,
                              osc_vars, outfreq, Δt, cycles, window, record_length, obs_err_pct,
                              ens_err_pct, transient, brownian_noise, y0, mp, varimax, check_bounds, test_time=false,
-                             da, inflation)
+                             da, inflation=false)
     u0 = y0
 
     tree, tree_r, EW_nature, EV_nature, y_nature, r, C1, R = Embedding.create_tree(model=model, record_length=record_length,
