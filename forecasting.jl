@@ -10,21 +10,21 @@ using Statistics
 
 using NearestNeighbors
 
-D = 4
-model = Models.lorenz96_true
-model_err = Models.lorenz96_err
+D = 6
+model = Models.colpitts_true
+model_err = Models.colpitts_err
 integrator = Integrators.rk4
-record_length = 10000.0
-outfreq = 5
+record_length = 25000
+outfreq = 4
 Δt = 0.1
-transient = 2000
-M = 100
-modes = 1:2
-k = 10
-k_r = 10
+transient = 3000
+M = 30
+modes = 2:3
+k = 40
+k_r = 30
 #pcs = 1:6
 
-y0 = randn(4)#[0.723667, 0.101699, 0.0719784, 0.923862, 0.321385, 0.579979]#[0.7, 0, 0]
+y0 = randn(D)#[0.723667, 0.101699, 0.0719784, 0.923862, 0.321385, 0.579979]#[0.7, 0, 0]
 
 y = integrator(model, y0, 0., record_length - Δt, Δt, inplace=false)[transient:outfreq:end, :]
 #y_err = integrator(model_err, randn(D), 0., record_length - Δt, Δt, inplace=false)[transient:outfreq:end, :]
@@ -92,11 +92,11 @@ for i_p=M:10:1000-max_lead
     #p2 = find_point2(model, p, C_conds_b)
 
     forecast = [find_point(r, tree_r, p2[:], k_r, i) for i=1:max_lead]
-    err = sqrt.(mean((vcat(p2, vcat(forecast...)) - r[i_p:i_p + max_lead, :]).^2, dims=2))
+    err = vcat(p2, vcat(forecast...)) - r[i_p:i_p + max_lead, :]
 
     errp = sqrt.(mean((p2 .- r[i_p:i_p + max_lead, :]).^2, dims=2))
 
-    forecast_model = vcat(p', integrator(model_err, p, 0., outfreq*Δt*max_lead, Δt, inplace=false))[1:outfreq:end, :]
+    forecast_model = vcat(p', integrator(model_err, p, 0., outfreq*Δt*max_lead, Δt, inplace=false))[1:outfreq:end, :] # ??
     Xp = Embedding.transform_cp(forecast_model, M, 'b', C_conds_b)
     x_cp = sum(Embedding.reconstruct(copy(Xp), EV, M, D, modes), dims=1)[1, :, :]
     errmo = sqrt.(mean((x_cp[M:end, :] .- r[i_p:i_p + max_lead, :]).^2, dims=2))

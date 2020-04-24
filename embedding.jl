@@ -283,12 +283,13 @@ function estimate_errs(osc, tree, data, pcs, max_k=30)
 end
 
 function create_tree(; model, Δt, outfreq, obs_err_pct, M, record_length, transient, u0, D,
-                     osc_vars, modes, integrator, pcs=nothing, varimax, brownian_noise)
+                     osc_vars, modes, integrator, pcs=nothing, varimax, brownian_noise,
+                     da, window, k, k_r)
    y = integrator(model, u0, 0., record_length*outfreq*Δt, Δt; inplace=false)[1:outfreq:end, :][(transient + 1):end, :]
    if (obs_err_pct > 0)
       R = Symmetric(diagm(0 => obs_err_pct*std(y, dims=1)[1, :]))
-      obs_err = MvNormal(zeros(D), R/2)
-      y = y + (rand(obs_err, size(y)[1])')
+      obs_err = MvNormal(zeros(D), R)
+      y = y + rand(obs_err, size(y)[1])'
    end
 
 #   if (brownian_noise != false)
@@ -309,6 +310,34 @@ function create_tree(; model, Δt, outfreq, obs_err_pct, M, record_length, trans
    r_all = Embedding.reconstruct(X, EV, M, length(osc_vars), modes)
    r = sum(r_all, dims=1)[1, :, :]
 
+   if da
+      function find_point(r, tree, p, k, f)
+          ind, dist = knn(tree, p, k)
+          mask = (ind .+ f) .<= size(tree.data)[1]
+          dist = dist[mask]
+          ind = ind[mask]
+          return sum(dist .* r[validation .+ ind .- 1 .+ f, :], dims=1)/sum(dist)
+      end
+      validation = round(Int, 0.1*size(y)[1])
+      tree = KDTree(copy((y[validation:end, :])'))
+      tree_r = KDTree(copy((r[validation:end, :])'))
+      errs = Array{Float64}(undef, D, length(M:validation-window))
+
+      for (i, i_p) in enumerate(M:validation-window)
+          p = y[i_p, :]
+          p2 = find_point(r, tree, p, k, 0)
+
+          forecast = find_point(r, tree_r, p2[:], k_r, window)
+          err = r[i_p + window, :] - forecast'
+
+          errs[:, i] = err
+      end
+
+      R = cov(errs')
+   else
+      R = false
+   end
+
    if pcs == nothing
       tree = KDTree(copy(y'))
       tree_r = KDTree(copy(r'))
@@ -318,6 +347,6 @@ function create_tree(; model, Δt, outfreq, obs_err_pct, M, record_length, trans
       tree = KDTree(copy(y'))
    end
 
-   return tree, tree_r, EW, EV, y, r, C
+   return tree, tree_r, EW, EV, y, r, C, R
 end
 end

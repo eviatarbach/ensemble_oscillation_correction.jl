@@ -10,10 +10,10 @@ using .Models
 using .Integrators
 using .run_ens_forecast
 
-M = 200
+M = 60
 D = 3
-k = 41
-k_r = 20
+k = 40
+k_r = 30
 
 osc_vars = 1:D
 modes = 3:4
