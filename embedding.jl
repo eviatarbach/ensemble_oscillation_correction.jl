@@ -321,7 +321,7 @@ function create_tree(; model, Δt, outfreq, obs_err_pct, M, record_length, trans
       validation = round(Int, 0.1*size(y)[1])
       tree = KDTree(copy((y[validation:end, :])'))
       tree_r = KDTree(copy((r[validation:end, :])'))
-      errs = Array{Float64}(undef, D, length(M:validation-window))
+      errs = Array{Float64}(undef, length(osc_vars), length(M:validation-window))
 
       for (i, i_p) in enumerate(M:validation-window)
           p = y[i_p, :]
