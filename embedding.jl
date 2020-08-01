@@ -33,6 +33,50 @@ function mssa(x::Array{Float64, 2}, M::Int64)
    return EW, EV, xtde, C
 end
 
+function mssa_multiple(x::Array{Float32, 3}, M::Int64)
+   # For dealing with multiple samples of a series
+   n, k, D = size(x)
+
+#   idx = Hankel([float(i) for i in 1:N-M+1], [float(i) for i in N-M+1:N])
+#   idx = round.(Int, idx)
+   xtde = zeros((n-M+1)*k, D*M)
+
+   for d = 1:D
+      for k_i=1:k
+         for i = 1:(n-M+1)
+             xtde[(k_i-1)*(n-M+1)+i, 1+M*(d-1):M*d] = x[i:i+M-1, k_i, d]
+         end
+      end
+   end
+   #xtde = dropzeros(xtde)
+#   xtde = reshape(xtde, N-M+1, D*M, 1)[:, :, 1]
+#   xtde = view(xtde, :, :, 1)
+
+#   xtde = sparse(xtde)
+
+   if (n-M+1)*k >= D*M
+      C = xtde'*xtde/((n-M+1)*k)
+      EW, EV = eigen(C)
+
+      EW = reverse(EW)
+      EV = reverse(EV, dims=2)
+   else
+      # Use transpose trick
+      C = xtde*xtde'/((n-M+1)*k)
+      EW, EV = eigen(C)
+
+      EW = reverse(EW)
+      EV = reverse(EV, dims=2)
+
+      EV = (xtde'*EV)[:, 1:D*M]
+
+      # Normalize eigenvectors
+      EV = EV./mapslices(norm, EV, dims=1)
+   end
+
+   return EW, EV, xtde, C
+end
+
 function precomp(C, M, D, mode)
    C_conds = Array{Array{Float64, 2}, 1}()
 
