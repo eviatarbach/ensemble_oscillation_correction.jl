@@ -17,12 +17,11 @@ function mssa(x::Array{Float64, 2}, M::Int64)
 
    idx = Hankel([float(i) for i in 1:N-M+1], [float(i) for i in N-M+1:N])
    idx = round.(Int, idx)
-   xtde = zeros(N-M+1, M, D)
+   xtde = zeros(N-M+1, D*M)
 
    for d=1:D
-      xtde[:, :, d] = x[:, d][idx]
+      xtde[:, 1+M*(d-1):M*d] = x[:, d][idx]
    end
-   xtde = reshape(xtde, N-M+1, D*M, 1)[:, :, 1]
 
    C = xtde'*xtde/(N-M+1)
    EW, EV = eigen(C)
