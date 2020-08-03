@@ -1,4 +1,7 @@
 using Serialization
+using Random
+
+Random.seed!(1234)
 
 include("models.jl")
 include("integrators.jl")
@@ -20,7 +23,7 @@ integrator = Integrators.rk4
 outfreq = 1
 Δt = 0.1
 m = 20
-cycles = 1000
+cycles = 10000
 window = {window}
 record_length = {record_length}
 ens_err_pct = {ens_err_pct}
@@ -41,15 +44,18 @@ if !da
                                                   osc_vars=osc_vars,
                                                   integrator=integrator,
                                                   outfreq=outfreq, Δt=Δt,
-                                                  m=m, cycles=100, window=window,
+                                                  m=m, cycles=1000, window=window,
                                                   record_length=record_length,
                                                   ens_err_pct=ens_err_pct, obs_err_pct=obs_err_pct,
                                                   transient=transient, brownian_noise=brownian_noise,
                                                   y0=y0, mp=mp, varimax=varimax, da=false, inflation=inflation,
-                                                  check_bounds=check_bounds)
+                                                  check_bounds=check_bounds,
+                                                  test_time=test_time)
 
-    mp = argmin(run_ens_forecast.optimal_ens(info))[1]
+    mp = argmin(run_ens_forecast.optimal_ens(info)[1])[1]
 end
+
+Random.seed!(1234)
 
 info, ssa_info = run_ens_forecast.ens_forecast_compare(model=model, model_err=model_err,
                                               M=M, D=D, k=k, k_r=k_r, modes=modes,
@@ -61,6 +67,7 @@ info, ssa_info = run_ens_forecast.ens_forecast_compare(model=model, model_err=mo
                                               ens_err_pct=ens_err_pct, obs_err_pct=obs_err_pct,
                                               transient=transient, brownian_noise=brownian_noise,
                                               y0=y0, mp=mp, varimax=varimax, da=da, inflation=inflation,
-                                              check_bounds=check_bounds)
+                                              check_bounds=check_bounds,
+                                              test_time=test_time)
 
 serialize(open(string("out_chua_", ARGS[1]), "w"), info)
