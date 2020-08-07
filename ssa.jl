@@ -4,9 +4,8 @@ export ssa, reconstruct, transform, project, obs_operator, transform1, obs_opera
 
 using LinearAlgebra
 using Statistics
-using Distributed
-using SharedArrays
 using Distributions
+using Distributed
 
 using NearestNeighbors
 
@@ -61,6 +60,36 @@ function ssa(x::Array{T, dim}, M::Integer) where {T<:AbstractFloat} where dim
    return EW, EV, xtde
 end
 
+function reconstruct(xtde::Array{T, 2}, EV::Array{T, 2}, M::Integer,
+                     D::Integer, ks) where {T<:AbstractFloat}
+   N = size(X)[1] + M - 1
+   A = xtde*EV
+   R = SharedArray{T, 3}((length(ks), N, D))
+
+   for (ik, k) in enumerate(ks)
+      ek = reshape(EV[:, k], M, D)
+      @sync @distributed for n = 1:N
+         if 1 <= n <= M - 1
+            M_n = n
+            L_n = 1
+            U_n = n
+         elseif M <= n <= N - M + 1
+            M_n = M
+            L_n = 1
+            U_n = M
+         elseif N - M + 2 <= n <= N
+            M_n = N - n + 1
+            L_n = n - N + M
+            U_n = M
+         end
+         for d=1:D
+            R[ik, n, d] = 1/M_n*sum([A[n - m + 1, k]*ek[m, d] for m=L_n:U_n])
+         end
+      end
+   end
+   return R
+end
+
 function precomp(C, M, D, mode)
    C_conds = Array{Array{Float64, 2}, 1}()
 
@@ -82,6 +111,41 @@ function precomp(C, M, D, mode)
    return C_conds
 end
 
+"""
+Varimax rotation as per
+   Groth, A. and M. Ghil, 2011: Multivariate singular spectrum analysis and the
+      road to phase synchronization, Physical Review E, 84, 036206.
+   Groth, A. and M. Ghil, 2015: Monte Carlo Singular Spectrum Analysis (SSA)
+      revisited: Detecting oscillator clusters in multivariate datasets, Journal
+      of Climate, 28, 7873-7893.
+
+Code based on Matlab implementation by Andreas Groth at
+https://www.mathworks.com/matlabcentral/fileexchange/65939-multichannel-singular-spectrum-analysis-varimax-tutorial
+
+Copyright (c) 2018, Andreas Groth
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+* Redistributions of source code must retain the above copyright notice, this
+  list of conditions and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright notice,
+  this list of conditions and the following disclaimer in the documentation
+  and/or other materials provided with the distribution
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+"""
 function varimax(A::Array{Float64, 3}, reltol=sqrt(eps(Float64)),
                  maxit=1000, normalize=true, G=[])
    M, D, S = size(A)
@@ -122,7 +186,7 @@ function varimax(A::Array{Float64, 3}, reltol=sqrt(eps(Float64)),
    return B, T
 end
 
-function var_rotate!(EW, EV, M, D, S)
+function varimax_rotate!(EW, EV, M, D, S)
    EVscaled=EV[:,1:S]*diagm(0=>sqrt.(EW[1:S]))
    EVreshape=reshape(EVscaled,M,D,S)
 
@@ -135,36 +199,6 @@ function var_rotate!(EW, EV, M, D, S)
    EW = sort(EW, rev=true)
 
    return EW, EV
-end
-
-function reconstruct(X::Array{Float64, 2}, EV::Array{Float64, 2}, M::Int64,
-                     D::Int64, ks)
-   N = size(X)[1] + M - 1
-   A = X*EV
-   R = SharedArray{Float64, 3}((length(ks), N, D))
-
-   for (ik, k) in enumerate(ks)
-      ek = reshape(EV[:, k], M, D)
-      @sync @distributed for n=1:N
-         if 1 <= n <= M - 1
-            M_n = n
-            L_n = 1
-            U_n = n
-         elseif M <= n <= N - M + 1
-            M_n = M
-            L_n = 1
-            U_n = M
-         elseif N - M + 2 <= n <= N
-            M_n = N - n + 1
-            L_n = n - N + M
-            U_n = M
-         end
-         for d=1:D
-            R[ik, n, d] = 1/M_n*sum([A[n - m + 1, k]*ek[m, d] for m=L_n:U_n])
-         end
-      end
-   end
-   return R
 end
 
 function transform(x, n, EV::Array{Float64, 2}, M, D, ks)
@@ -260,39 +294,6 @@ function project(tree, point, osc, k, N)
    dists = dists[mask]
 
    return sum((1 ./ dists).*[osc[id:id+N, :] for id in idx])/sum(1 ./ dists)
-end
-
-function obs_operator(EV, M, D, k)
-   n = (M - 1)*2 + 1
-   A = diagm(0 => ones(n*D))
-   return vcat([transform(reshape(A[:, i], n, D), M, EV, M, D, k) for i=1:n*D]...)
-end
-
-function obs_operator1(EV, M, D, k)
-   n = M
-   A = diagm(0 => ones(n*D))
-   return vcat([transform1(reshape(A[:, i], n, D), EV, M, D, k) for i=1:n*D]...)
-end
-
-function reconstruct_cp(X::Array{Float64, 2}, EV::Array{Float64, 2}, M::Int64,
-                     D::Int64, ks, n=M)
-   N = size(X)[1] + M - 1
-   A = X*EV
-   R = zeros(length(ks), D)
-
-   for (ik, k) in enumerate(ks)
-      ek = reshape(EV[:, k], M, D)
-      n = M  # Is this right for forward?
-
-      M_n = M
-      L_n = 1
-      U_n = M
-
-      for d=1:D
-         R[ik, d] = 1/M_n*sum([A[n - m + 1, k]*ek[m, d] for m=L_n:U_n])
-      end
-   end
-   return R
 end
 
 function estimate_errs(osc, tree, data, pcs, max_k=30)
