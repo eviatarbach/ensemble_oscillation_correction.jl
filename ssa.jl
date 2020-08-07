@@ -1,6 +1,6 @@
-module Embedding
+module SSA
 
-export ssa, reconstruct, transform, project, obs_operator, transform1, obs_operator1
+export ssa_eigen, ssa_reconstruct, transform, project, transform1
 
 using LinearAlgebra
 using Statistics
@@ -9,10 +9,16 @@ using Distributed
 
 using NearestNeighbors
 
+struct SSA_Info
+   EW
+   EV
+   X
+end
+
 """
-Singular spectrum analysis with the Broomhead–King approach
+Singular spectrum analysis eigendecomposition with the Broomhead–King approach
 """
-function ssa(x::Array{T, dim}, M::Integer) where {T<:AbstractFloat} where dim
+function ssa_eigen(x::Array{T, dim}, M::Integer) where {T<:AbstractFloat} where dim
    if (dim == 1)
       # Single-channel SSA
       N = length(x)
@@ -29,26 +35,30 @@ function ssa(x::Array{T, dim}, M::Integer) where {T<:AbstractFloat} where dim
       throw(ArgumentError("x must be of 1, 2, or 3 dimensions"))
    end
 
+   if M > N
+      throw(ArgumentError("M cannot be greater than N"))
+   end
+
    N′ = N-M+1
-   xtde = zeros(N′*k, D*M)
+   X = zeros(T, N′*k, D*M)
 
    for k_i = 1:k
       for d = 1:D
          for i = 1:N′
-             xtde[(k_i-1)*N′+i, 1+M*(d-1):M*d] = x[i:i+M-1, d, k_i]
+             X[(k_i-1)*N′+i, 1+M*(d-1):M*d] = x[i:i+M-1, d, k_i]
          end
       end
    end
 
    if N′*k >= D*M
-      C = xtde'*xtde/(N′*k)
+      C = X'*X/(N′*k)
       EW, EV = eigen(C)
    else
       # Use PCA transpose trick; see section A2 of Ghil et al. (2002)
-      C = xtde*xtde'/(N′*k)
+      C = X*X'/(N′*k)
       EW, EV = eigen(C)
 
-      EV = xtde'*EV
+      EV = X'*EV
 
       # Normalize eigenvectors
       EV = EV./mapslices(norm, EV, dims=1)
@@ -57,13 +67,13 @@ function ssa(x::Array{T, dim}, M::Integer) where {T<:AbstractFloat} where dim
    EW = reverse(EW)
    EV = reverse(EV, dims=2)
 
-   return EW, EV, xtde
+   return EW, EV, X
 end
 
-function reconstruct(xtde::Array{T, 2}, EV::Array{T, 2}, M::Integer,
-                     D::Integer, ks) where {T<:AbstractFloat}
+function ssa_reconstruct(X::Array{T, 2}, EV::Array{T, 2}, M::Integer,
+                         D::Integer, ks) where {T<:AbstractFloat}
    N = size(X)[1] + M - 1
-   A = xtde*EV
+   A = X*EV
    R = SharedArray{T, 3}((length(ks), N, D))
 
    for (ik, k) in enumerate(ks)
@@ -90,7 +100,7 @@ function reconstruct(xtde::Array{T, 2}, EV::Array{T, 2}, M::Integer,
    return R
 end
 
-function precomp(C, M, D, mode)
+function cp_precomp(C, M, D, mode)
    C_conds = Array{Array{Float64, 2}, 1}()
 
    for offset=1:M-1
@@ -146,8 +156,8 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
-function varimax(A::Array{Float64, 3}, reltol=sqrt(eps(Float64)),
-                 maxit=1000, normalize=true, G=[])
+function varimax(A::Array{T, 3}, reltol=sqrt(eps(T)),
+                 maxit=1000, normalize=true, G=[]) where T
    M, D, S = size(A)
    B = A
 
@@ -228,7 +238,7 @@ function transform1(x, EV::Array{Float64, 2}, M, D, ks)
    return R
 end
 
-function transform_cp(x::Array{Float64, 2}, M::Int64, mode, C_conds)
+function cp_transform(x::Array{Float64, 2}, M::Int64, mode, C_conds)
    # Method from "Singular Spectrum Analysis With Conditional Predictions for
    # Real-Time State Estimation and Forecasting", Ogrosky et al. (2019)
 
@@ -236,24 +246,24 @@ function transform_cp(x::Array{Float64, 2}, M::Int64, mode, C_conds)
 
    idx = Hankel([float(i) for i in 1:N-M+1], [float(i) for i in N-M+1:N])
    idx = round.(Int, idx)
-   xtde = zeros(N-M+1, M, D)
+   X = zeros(N-M+1, M, D)
 
    for d=1:D
-      xtde[:, :, d] = x[:, d][idx]
+      X[:, :, d] = x[:, d][idx]
    end
-   xtde = reshape(xtde, N-M+1, D*M, 1)[:, :, 1]
+   X = reshape(X, N-M+1, D*M, 1)[:, :, 1]
 
    Xp = zeros(N, M*D)
 
    if mode == 'f'
-      Xp[1:N-M+1, :] = xtde
+      Xp[1:N-M+1, :] = X
 
-      xtde_end = reshape(xtde[end, :], M, D)
+      X_end = reshape(X[end, :], M, D)
       indices = (N-M+2):N
    elseif mode == 'b'
-      Xp[M:end, :] = xtde
+      Xp[M:end, :] = X
 
-      xtde_end = reshape(xtde[1, :], M, D)
+      X_end = reshape(X[1, :], M, D)
       indices = M-1:-1:1
    end
 
@@ -264,7 +274,7 @@ function transform_cp(x::Array{Float64, 2}, M::Int64, mode, C_conds)
          offset = k - (N - M + 1)
 
          # Fill in upper diagonal with known values
-         Xp[k, 1:(end-offset), :] = xtde_end[(offset + 1):end, :]
+         Xp[k, 1:(end-offset), :] = X_end[(offset + 1):end, :]
 
          C_cond = C_conds[offset]
 
@@ -273,7 +283,7 @@ function transform_cp(x::Array{Float64, 2}, M::Int64, mode, C_conds)
       elseif mode == 'b'
          offset = M - k
 
-         Xp[k, offset+1:end, :] = xtde_end[1:end-offset, :]
+         Xp[k, offset+1:end, :] = X_end[1:end-offset, :]
 
          C_cond = C_conds[offset]
 
