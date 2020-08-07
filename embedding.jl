@@ -1,6 +1,6 @@
 module Embedding
 
-export mssa, reconstruct, transform, project, obs_operator, transform1, obs_operator1
+export ssa, reconstruct, transform, project, obs_operator, transform1, obs_operator1
 
 using LinearAlgebra
 using Statistics
@@ -8,72 +8,57 @@ using Distributed
 using SharedArrays
 using Distributions
 
-using ToeplitzMatrices
 using NearestNeighbors
-#using DifferentialEquations
 
-function mssa(x::Array{Float64, 2}, M::Int64)
-   N, D = size(x)
-
-   idx = Hankel([float(i) for i in 1:N-M+1], [float(i) for i in N-M+1:N])
-   idx = round.(Int, idx)
-   xtde = zeros(N-M+1, D*M)
-
-   for d=1:D
-      xtde[:, 1+M*(d-1):M*d] = x[:, d][idx]
+"""
+Singular spectrum analysis with the Broomhead–King approach
+"""
+function ssa(x::Array{T, dim}, M::Integer) where {T<:AbstractFloat} where dim
+   if (dim == 1)
+      # Single-channel SSA
+      N = length(x)
+      D = 1
+      k = 1
+   elseif (dim == 2)
+      # Multi-channel SSA
+      N, D = size(x)
+      k = 1
+   elseif (dim == 3)
+      # Multi-channel SSA with multiple non-contiguous samples of a series
+      N, D, k = size(x)
+   else
+      throw(ArgumentError("x must be of 1, 2, or 3 dimensions"))
    end
 
-   C = xtde'*xtde/(N-M+1)
-   EW, EV = eigen(C)
+   N′ = N-M+1
+   xtde = zeros(N′*k, D*M)
 
-   EW = reverse(EW)
-   EV = reverse(EV, dims=2)
-
-   return EW, EV, xtde, C
-end
-
-function mssa_multiple(x::Array{Float32, 3}, M::Int64)
-   # For dealing with multiple samples of a series
-   n, k, D = size(x)
-
-#   idx = Hankel([float(i) for i in 1:N-M+1], [float(i) for i in N-M+1:N])
-#   idx = round.(Int, idx)
-   xtde = zeros((n-M+1)*k, D*M)
-
-   for d = 1:D
-      for k_i=1:k
-         for i = 1:(n-M+1)
-             xtde[(k_i-1)*(n-M+1)+i, 1+M*(d-1):M*d] = x[i:i+M-1, k_i, d]
+   for k_i = 1:k
+      for d = 1:D
+         for i = 1:N′
+             xtde[(k_i-1)*N′+i, 1+M*(d-1):M*d] = x[i:i+M-1, d, k_i]
          end
       end
    end
-   #xtde = dropzeros(xtde)
-#   xtde = reshape(xtde, N-M+1, D*M, 1)[:, :, 1]
-#   xtde = view(xtde, :, :, 1)
 
-#   xtde = sparse(xtde)
-
-   if (n-M+1)*k >= D*M
-      C = xtde'*xtde/((n-M+1)*k)
+   if N′*k >= D*M
+      C = xtde'*xtde/(N′*k)
       EW, EV = eigen(C)
-
-      EW = reverse(EW)
-      EV = reverse(EV, dims=2)
    else
-      # Use transpose trick
-      C = xtde*xtde'/((n-M+1)*k)
+      # Use PCA transpose trick; see section A2 of Ghil et al. (2002)
+      C = xtde*xtde'/(N′*k)
       EW, EV = eigen(C)
 
-      EW = reverse(EW)
-      EV = reverse(EV, dims=2)
-
-      EV = (xtde'*EV)[:, 1:D*M]
+      EV = xtde'*EV
 
       # Normalize eigenvectors
       EV = EV./mapslices(norm, EV, dims=1)
    end
 
-   return EW, EV, xtde, C
+   EW = reverse(EW)
+   EV = reverse(EV, dims=2)
+
+   return EW, EV, xtde
 end
 
 function precomp(C, M, D, mode)
