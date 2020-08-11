@@ -2,17 +2,6 @@ module Models
 
 using Statistics
 using NearestNeighbors
-using StaticArrays
-
-struct Model
-   p
-   integrator
-   tendency
-end
-
-function integrate(model::Model)
-   model.integrator((t, u)->model.tendency(t, u, model.p))
-end
 
 function model_error(; x0, model_true, model_err, integrator, outfreq, Δt, N)
    window = outfreq*Δt
@@ -73,18 +62,6 @@ colpitts_err = (t, u)->colpitts(t, u, Dict("p1" => 5.0 + 0.1,
                                            "p4" => 0.6898, "c21" => 0.05,
                                            "c32" => 0.1, "c13" => 0.15))
 
-function duffing!(du, t, u, p)
-   x, y = u
-   #du = zeros(2)
-
-   du[1] = y
-   du[2] = p["a"]*cos(p["ω"]*t)*x - x^3 - p["b"]*y
-
-   return du
-end
-
-duffing_true = (du, t, u)->duffing!(du, t, u, Dict("ω" => 0.7, "a" => 6.25, "b" => 0.3))
-
 function chua(t, u, p)
    x, y, z = u
 
@@ -105,45 +82,6 @@ chua_true = (t, u)->chua(t, u, Dict("α" => 15.6, "β" => 25.58, "m_1" => -5/7,
 chua_err = (t, u)->chua(t, u, Dict("α" => 15.7, "β" => 24.58, "m_1" => -5/7,
                                     "m_0" => -8/7))
 
-function lorenz96(t, u, p)
-   N = 4
-
-   # compute state derivatives
-   du = zeros(N)
-
-   # first the 3 edge cases: i=1,2,N
-   du[1] = (u[2] - u[N-1])*u[N] - u[1]
-   du[2] = (u[3] - u[N])*u[1] - u[2]
-   du[N] = (u[1] - u[N-2])*u[N-1] - u[N]
-
-   # then the general case
-   for i=3:N-1
-       du[i] = (u[i+1] - u[i-2])*u[i-1] - u[i]
-    end
-
-   du .+= p["F"]*cos(p["ω"]*t)
-
-   return du
-end
-
-lorenz96_true = (t, u)->lorenz96(t, u, Dict("F" => 8, "ω" => 2*pi/50))
-lorenz96_err = (t, u)->lorenz96(t, u, Dict("F" => 8, "ω" => 2*pi/55))
-
-function forced!(du, t, u, p)
-   x, y, uu, v = u
-
-   #du = zeros(4)
-
-   du[1] = v
-   du[2] = uu
-   du[3] = -p["Ω"]^2*y
-   du[4] = -sin(x) + y
-
-   return du
-end
-
-forced_true = (du, t, u)->forced!(du, t, u, Dict("Ω" => 1))
-
 function osc(t, u, p)
    x, y, z, uu, v = u
 
@@ -162,36 +100,5 @@ osc_true = (t, u)->osc(t, u, Dict("Ω" => 0.3, "σ" => 10, "β" => 8/3,
 
 osc_err = (t, u)->osc(t, u, Dict("Ω" => 0.32, "σ" => 10, "β" => 8/3,
                                  "ρ" => 28, "c" => 5.1))
-
-function ly!(du, t, u, p)
-   θ, y = u
-   #du = zeros(2)
-
-   Λ = p["k_1"]*sin(p["ω_1"]*t) + p["k_2"]*sin(p["ω_2"]*t)
-   du[1] = 2*pi/p["P"] + p["σ"]*y
-   du[2] = -p["λ"]*y + p["γ"]*sin(θ)*Λ
-
-   return du
-end
-
-ly_true = (du, t, u)->ly!(du, t, u, Dict("ω_1" => 2*pi/41, "ω_2" => 2*pi/23,
-                                         "k_1" => 0.8, "k_2" => 0.8, "P" => 100,
-                                         "σ" => 3, "λ" => 0.2, "γ" => 0.1))
-
-function osc84!(du, t, u, p)
-  x, y, z = u
-  #du = zeros(3)
-
-  du[1] = -p["a"]*x - y^2 - z^2 + p["a"]*p["F"]
-  du[2] = -y + x*y - p["b"]*x*z + p["G"]
-  du[3] = -z + p["b"]*x*y + x*z + p["ϵ"]*cos(p["ω"]*t)
-
-  return du
-end
-
-osc84_true = (du, t, u)->osc84!(du, t, u, Dict("a" => 1/4, "b" => 4, "ϵ" => 0.01,
-                                               "ω" => 2*pi/500, "F" => 1,
-                                               "G" => 0.5))
-
 
 end

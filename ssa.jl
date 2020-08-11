@@ -86,7 +86,7 @@ function ssa_reconstruct(ssa_info, modes; sum_modes=false)
    N = ssa_info.N
    D = ssa_info.D
    J = ssa_info.J
-   R = SharedArray{eltype(X), 4}((length(modes), N, D, J))
+   r = SharedArray{eltype(X), 4}((length(modes), N, D, J))
 
    for (i_k, k) in enumerate(modes)
       ek = reshape(eig_vecs[:, k], M, D)
@@ -107,16 +107,24 @@ function ssa_reconstruct(ssa_info, modes; sum_modes=false)
                U_n = M
             end
             for d=1:D
-               R[i_k, n, d, j] = 1/M_n*sum([A[n - m + 1, k]*ek[m, d] for m=L_n:U_n])
+               r[i_k, n, d, j] = 1/M_n*sum([A[n - m + 1, k]*ek[m, d] for m=L_n:U_n])
             end
          end
       end
    end
 
-   if sum_modes
-      R = sum(R, dims=1)[1, :, :, :]
+   if J == 1
+      r = r[:, :, :, 1]
+
+      if D == 1
+         r = r[:, :, 1]
+      end
    end
 
-   return R
+   if sum_modes
+      r = copy(selectdim(sum(r, dims=1), 1, 1))
+   end
+
+   return r
 end
 end
