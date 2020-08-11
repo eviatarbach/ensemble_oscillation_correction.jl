@@ -1,8 +1,8 @@
 module ens_forecast
 
-include("embedding.jl")
+include("ssa.jl")
 
-using .Embedding
+using .SSA
 
 using Statistics
 using LinearAlgebra

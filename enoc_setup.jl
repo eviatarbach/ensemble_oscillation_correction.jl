@@ -7,8 +7,8 @@ using Random
 using Distributions
 using NearestNeighbors
 
-include("./embedding.jl")
-using .Embedding
+include("./ssa.jl")
+using .SSA
 
 include("ens_forecast.jl")
 using .ens_forecast
@@ -28,6 +28,64 @@ function optimal_ens(info)
     errs = [[sqrt(mean((nanmean(info.ens[:, (sortperm(info.r_errs[j, :]))[1:i], j], 2) - info.x_trues[:, j]).^2)) for j=1:N] for i=1:m]
     errs_rand = [[sqrt(mean((nanmean(info.ens[:, shuffle(sortperm(info.r_errs[j, :]))[1:i], j], 2) - info.x_trues[:, j]).^2)) for j=1:N] for i=1:m]
     return mean(hcat(errs...), dims=1)', mean(hcat(errs_rand...), dims=1)'
+end
+
+function create_tree(; model, Δt, outfreq, obs_err_pct, M, record_length, transient, u0, D,
+                     osc_vars, modes, integrator, pcs=nothing, varimax,
+                     da, window, k, k_r)
+   y = integrator(model, u0, 0., record_length*outfreq*Δt, Δt; inplace=false)[1:outfreq:end, :][(transient + 1):end, :]
+   if (obs_err_pct > 0)
+      R = Symmetric(diagm(0 => obs_err_pct*std(y, dims=1)[1, :]))
+      obs_err = MvNormal(zeros(D), R)
+      y = y + rand(obs_err, size(y)[1])'
+   end
+
+   ssa_info = ssa_decompose(y[:, osc_vars], M)
+
+   if varimax
+      ssa_info.eig_vals, ssa_info.eig_vecs = ssa_varimax.varimax_rotate!(ssa_info.eig_vals, ssa_info.eig_vecs, M, ssa_info.D, maximum(modes))
+   end
+
+   r = ssa_reconstruct(ssa_info, modes, sum_modes=true)
+
+   if da
+      function find_point(r, tree, p, k, f)
+          ind, dist = knn(tree, p, k)
+          mask = (ind .+ f) .<= size(tree.data)[1]
+          dist = dist[mask]
+          ind = ind[mask]
+          return sum(dist .* r[validation .+ ind .- 1 .+ f, :], dims=1)/sum(dist)
+      end
+      validation = round(Int, 0.1*size(y)[1])
+      tree = KDTree(copy((y[validation:end, :])'))
+      tree_r = KDTree(copy((r[validation:end, :])'))
+      errs = Array{Float64}(undef, length(osc_vars), length(M:validation-window))
+
+      for (i, i_p) in enumerate(M:validation-window)
+          p = y[i_p, :]
+          p2 = find_point(r, tree, p, k, 0)
+
+          forecast = find_point(r, tree_r, p2[:], k_r, window)
+          err = r[i_p + window, :] - forecast'
+
+          errs[:, i] = err
+      end
+
+      R = cov(errs')
+   else
+      R = false
+   end
+
+   if pcs == nothing
+      tree = KDTree(copy(y'))
+      tree_r = KDTree(copy(r'))
+   else
+      _, _, v = svd(r)
+      v = v[:, 1:pcs]
+      tree = KDTree(copy(y'))
+   end
+
+   return tree, tree_r, EW, EV, y, r, C, R
 end
 
 function ens_forecast_compare(; model, model_err, integrator, m, M, D, k, k_r, modes,
