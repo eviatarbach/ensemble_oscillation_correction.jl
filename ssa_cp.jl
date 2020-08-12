@@ -1,4 +1,12 @@
-function cp_precomp(C, M, D, mode)
+module SSA_CP
+
+using LinearAlgebra
+
+include("ssa.jl")
+
+using .SSA
+
+function precomp(C, M, D, mode)
    C_conds = Array{Array{Float64, 2}, 1}()
 
    for offset=1:M-1
@@ -11,7 +19,7 @@ function cp_precomp(C, M, D, mode)
          C_21 = reshape(reshape(C, M, D, M, D)[1:offset, :, offset+1:end, :], :, (M - offset)*D)
       end
 
-      C_11 += 1e-8*I
+      C_11 += 1e-8*I  # To improve conditioning
       C_11_inv = inv(C_11)
 
       push!(C_conds, C_21*C_11_inv)
@@ -19,20 +27,20 @@ function cp_precomp(C, M, D, mode)
    return C_conds
 end
 
-function cp_transform(x::Array{Float64, 2}, M::Int64, mode, C_conds)
+function transform(x::Array{float_type, 2}, M::Integer, mode, C_conds) where {float_type<:AbstractFloat}
    # Method from "Singular Spectrum Analysis With Conditional Predictions for
    # Real-Time State Estimation and Forecasting", Ogrosky et al. (2019)
 
    N, D = size(x)
 
-   idx = Hankel([float(i) for i in 1:N-M+1], [float(i) for i in N-M+1:N])
-   idx = round.(Int, idx)
-   X = zeros(N-M+1, M, D)
+   N′ = N-M+1
+   X = zeros(float_type, N′, D*M)
 
-   for d=1:D
-      X[:, :, d] = x[:, d][idx]
+   for d = 1:D
+      for i = 1:N′
+          X[i, 1+M*(d-1):M*d] = x[i:i+M-1, d]
+      end
    end
-   X = reshape(X, N-M+1, D*M, 1)[:, :, 1]
 
    Xp = zeros(N, M*D)
 
@@ -81,4 +89,6 @@ function find_point2(model, p, C_conds, outfreq, M, Δt, modes)
     future = vcat(p', integrator(model, p, 0.0, outfreq*Δt*(M-1), Δt, inplace=false))[1:outfreq:end, :]
     pred = sum(Embedding.reconstruct_cp(Embedding.transform_cp(future, M, 'b', C_conds), EV, M, D, modes), dims=1)[1, :]
     return pred
+end
+
 end

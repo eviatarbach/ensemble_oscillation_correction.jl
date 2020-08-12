@@ -1,35 +1,42 @@
 using Plots
 using Statistics
 
-include("embedding.jl")
+include("ssa.jl")
+include("ssa_cp.jl")
 include("models.jl")
 include("integrators.jl")
 
-using .Embedding
+using .SSA
+using .SSA_CP
 using .Models
 using .Integrators
 
 model = Models.colpitts_true
 Δt = 0.1
 M = 30
-D = 9
+D = 6
 outfreq = 4
 modes = 1:6
 
-y = Integrators.rk4(model, randn(9), 0., 1550.0 - Δt, Δt, inplace=false)[500:outfreq:end, :]
+y = rk4(model, randn(D), 0., 1550.0 - Δt, Δt, inplace=false)[500:outfreq:end, :]
 
-EW, EV, X, C = Embedding.mssa(copy(y)[1:end, :], M)
-C_conds = Embedding.precomp(C, M, D, 'f')
-Xp = Embedding.transform_cp(copy(y)[1:end-29, :], M, 'f', C_conds)
-heatmap(reverse(Xp[end-100:end, :], dims=2)', clim=(-15, 15))
-EWn, EVn, Xn = Embedding.mssa(copy(y)[1:end-29, :], M)
+N = size(y)[1]
+start_i = N - M + 1
 
-x_true = sum(Embedding.reconstruct(copy(X), EV, M, D, modes), dims=1)[1, :, :]
-x_normal = sum(Embedding.reconstruct(copy(Xn), EV, M, D, modes), dims=1)[1, :, :]
-x_cp = sum(Embedding.reconstruct(copy(Xp), EV, M, D, modes), dims=1)[1, :, :]
+ssa_info = SSA.ssa_decompose(copy(y)[1:end, :], M)
+C_conds = SSA_CP.precomp(ssa_info.C, M, D, 'f')
+Xp = SSA_CP.transform(copy(y)[1:end-M+1, :], M, 'f', C_conds)
+display(heatmap(reverse(Xp[end-100:end, :], dims=2)', clim=(-15, 15)))
+ssa_info_n = SSA.ssa_decompose(copy(y)[1:end-M+1, :], M)
 
-plot([x_normal[3721-29:end, 1], x_cp[3721-29:end, 1], x_true[3721-29:end, 1]],
-     labels=["Normal", "CP", "Truth"])
+x_true = SSA.ssa_reconstruct(ssa_info, modes, sum_modes=true)
+x_normal = SSA.ssa_reconstruct(ssa_info_n, modes, sum_modes=true)
+ssa_info.X = Xp
+x_cp = SSA.ssa_reconstruct(ssa_info, modes, sum_modes=true)
 
-println("Error normal: ", sqrt.(mean((x_normal[3721-29:end, :] - x_true[3721-29:3721, :]).^2)))
-println("Error CP: ", sqrt.(mean((x_cp[3721-29:3721, :] - x_true[3721-29:3721, :]).^2)))
+display(plot([x_normal[start_i-M+1:end, 1], x_cp[start_i-M+1:end, 1],
+              x_true[start_i-M+1:end, 1]],
+              labels=["Normal" "Conditional prediction" "Truth"]))
+
+println("Error normal: ", sqrt.(mean((x_normal[start_i-M+1:end, :] - x_true[start_i-M+1:start_i, :]).^2)))
+println("Error CP: ", sqrt.(mean((x_cp[start_i-M+1:start_i, :] - x_true[start_i-M+1:start_i, :]).^2)))
