@@ -2,6 +2,8 @@ module Analog
 
 export find_point, error_cov
 
+using Statistics
+
 using NearestNeighbors
 
 function find_point(r, tree, p, k, f)
@@ -12,7 +14,7 @@ function find_point(r, tree, p, k, f)
     return sum(dist .* r[ind .+ f, :], dims=1)/sum(dist)
 end
 
-function error_cov(y, r, M, window, k, k_r; validation_pct=0.1)
+function error_cov(y, r, M, window, k, k_r, osc_vars; validation_pct=0.1)
     validation = round(Int, validation_pct*size(y)[1])
     tree = KDTree(copy((y[validation:end, :])'))
     tree_r = KDTree(copy((r[validation:end, :])'))

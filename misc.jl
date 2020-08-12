@@ -34,3 +34,9 @@ function project(tree, point, osc, k, N)
 
    return sum((1 ./ dists).*[osc[id:id+N, :] for id in idx])/sum(1 ./ dists)
 end
+
+function find_point2(model, p, C_conds, outfreq, M, Δt, modes)
+    future = vcat(p', integrator(model, p, 0.0, outfreq*Δt*(M-1), Δt, inplace=false))[1:outfreq:end, :]
+    pred = sum(Embedding.reconstruct_cp(Embedding.transform_cp(future, M, 'b', C_conds), EV, M, D, modes), dims=1)[1, :]
+    return pred
+end

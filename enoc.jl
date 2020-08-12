@@ -47,7 +47,7 @@ function setup(; model, Δt, outfreq, obs_err_pct, M, record_length, transient,
    r = ssa_reconstruct(ssa_info, modes, sum_modes=true)
 
    if da
-      R = error_cov(y, r, M, window, k, k_r)
+      R = error_cov(y, r, M, window, k, k_r, osc_vars)
    else
       R = false
    end
