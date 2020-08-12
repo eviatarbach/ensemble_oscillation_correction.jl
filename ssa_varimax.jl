@@ -1,3 +1,9 @@
+module ssa_varimax
+
+export varimax_rotate!
+
+using LinearAlgebra
+
 """
 Varimax rotation as per
    Groth, A. and M. Ghil, 2011: Multivariate singular spectrum analysis and the
@@ -86,4 +92,6 @@ function varimax_rotate!(EW, EV, M, D, S)
    EW = sort(EW, rev=true)
 
    return EW, EV
+end
+
 end

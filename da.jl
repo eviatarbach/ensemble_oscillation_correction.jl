@@ -2,7 +2,7 @@ module DA
 
 export etkf
 
-using Statisticss
+using Statistics
 
 """
 Ensemble transform Kalman filter (ETKF)

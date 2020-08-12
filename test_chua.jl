@@ -5,10 +5,10 @@
 
 include("models.jl")
 include("integrators.jl")
-include("run_ens_forecast.jl")
+include("enoc.jl")
 using .Models
 using .Integrators
-using .run_ens_forecast
+using .enoc
 
 M = 60
 D = 3
@@ -32,17 +32,16 @@ brownian_noise = false
 transient = 3000
 mp = 9
 varimax = true
+da = false
+inflation = false
 
 y0 = [-1.06095, 0.160678, 0.267729]
 
-info, ssa_info = run_ens_forecast.ens_forecast_compare(model=model, model_err=model_err,
-                                              M=M, D=D, k=k, k_r=k_r, modes=modes,
-                                              osc_vars=osc_vars,
-                                              integrator=integrator,
-                                              outfreq=outfreq, Δt=Δt,
-                                              m=m, cycles=cycles, window=window,
-                                              record_length=record_length,
-                                              ens_err_pct=ens_err_pct, obs_err_pct=obs_err_pct,
-                                              transient=transient, brownian_noise=brownian_noise,
-                                              y0=y0, mp=mp, varimax=varimax,
-                                              check_bounds=true, test_time=10.0)
+info, ssa_info = enoc.run(model=model, model_err=model_err, M=M, D=D, k=k,
+                          k_r=k_r, modes=modes, osc_vars=osc_vars,
+                          integrator=integrator, outfreq=outfreq, Δt=Δt, m=m,
+                          cycles=cycles, window=window,
+                          record_length=record_length, ens_err_pct=ens_err_pct,
+                          obs_err_pct=obs_err_pct, transient=transient, y0=y0,
+                          mp=mp, varimax=varimax, check_bounds=true,
+                          test_time=10.0, da=da, inflation=inflation)

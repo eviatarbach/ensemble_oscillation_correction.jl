@@ -6,7 +6,7 @@ using LinearAlgebra
 using Distributed
 using SharedArrays
 
-struct SSA_Info
+mutable struct SSA_Info
    eig_vals::Array{<:AbstractFloat, 1}
    eig_vecs::Array{<:AbstractFloat, 2}
    X::Array{<:AbstractFloat, 2}
