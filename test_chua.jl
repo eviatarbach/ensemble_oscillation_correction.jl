@@ -1,8 +1,3 @@
-#using Distributed
-
-#rmprocs(procs())
-#addprocs()
-
 include("models.jl")
 include("integrators.jl")
 include("enoc.jl")
@@ -28,7 +23,6 @@ window = 10
 record_length = 25000
 ens_err_pct = 0.2
 obs_err_pct = 0.1
-brownian_noise = false
 transient = 3000
 mp = 9
 varimax = true
