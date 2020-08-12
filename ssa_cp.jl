@@ -76,3 +76,9 @@ function cp_transform(x::Array{Float64, 2}, M::Int64, mode, C_conds)
 
    return Xp
 end
+
+function find_point2(model, p, C_conds, outfreq, M, Δt, modes)
+    future = vcat(p', integrator(model, p, 0.0, outfreq*Δt*(M-1), Δt, inplace=false))[1:outfreq:end, :]
+    pred = sum(Embedding.reconstruct_cp(Embedding.transform_cp(future, M, 'b', C_conds), EV, M, D, modes), dims=1)[1, :]
+    return pred
+end

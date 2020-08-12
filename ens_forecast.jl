@@ -1,8 +1,12 @@
 module ens_forecast
 
 include("ssa.jl")
+include("analog.jl")
+include("da.jl")
 
 using .SSA
+using .Analog
+using .DA
 
 using Statistics
 using LinearAlgebra
@@ -21,20 +25,6 @@ struct Forecast_Info
     x_trues
     errs_m
     r_forecasts
-end
-
-function find_point(r, tree, p, k, f)
-    ind, dist = knn(tree, p[:], k)
-    mask = (ind .+ f) .<= size(tree.data)[1]
-    dist = 1 ./ dist[mask]
-    ind = ind[mask]
-    return sum(dist .* r[ind .+ f, :], dims=1)/sum(dist)
-end
-
-function find_point2(model, p, C_conds, outfreq, M, Δt, modes)
-    future = vcat(p', integrator(model, p, 0.0, outfreq*Δt*(M-1), Δt, inplace=false))[1:outfreq:end, :]
-    pred = sum(Embedding.reconstruct_cp(Embedding.transform_cp(future, M, 'b', C_conds), EV, M, D, modes), dims=1)[1, :]
-    return pred
 end
 
 function is_valid(p, model, integrator, t, Δt, test_time, bounds)
@@ -87,16 +77,8 @@ function forecast(; E::Array{Float64, 2}, model, model_err, integrator,
                 append!(x_trues, x_true)
                 append!(errs_m, sqrt(mean((means .- x_true).^2)))
             else
-                x_m = mean(E, dims=2)
-                X = (E .- x_m)/sqrt(m - 1)
-
-                X = inflation*X
-                y_m = find_point(r, tree, x_m, k, 0)
-                Y = (r_ens .- y_m)'/sqrt(m - 1)
-                Ω = real((I + Y'*R_inv*Y)^(-1))
-                w = Ω*Y'*R_inv*(r_forecast - y_m)'
-
-                E = real(x_m .+ X*(w .+ sqrt(m - 1)*Ω^(1/2)))
+                E = etkf(E=E, R_inv=R_inv, inflation=inflation,
+                         H=x->find_point(r, tree, x, k, 0), y=r_forecast)
                 x_m = mean(E, dims=2)
                 append!(errs, sqrt(mean((x_m .- x_true).^2)))
             end

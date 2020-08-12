@@ -1,7 +1,5 @@
 module Integrators
 
-using Statistics
-
 export rk4
 
 function rk4(f::Function, y0::Array{Float64, 1}, t0::Float64,

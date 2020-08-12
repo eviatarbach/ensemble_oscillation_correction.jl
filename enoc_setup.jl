@@ -1,5 +1,8 @@
 module run_ens_forecast
 
+include("analog.jl")
+using .Analog
+
 using LinearAlgebra
 using Statistics
 using Random
@@ -12,13 +15,6 @@ using .SSA
 
 include("ens_forecast.jl")
 using .ens_forecast
-
-struct SSA_Info
-    EW
-    EV
-    r
-    y
-end
 
 nanmean(x) = mean(filter(!isnan,x))
 nanmean(x,y) = mapslices(nanmean,x,dims=y)
@@ -49,29 +45,7 @@ function create_tree(; model, Δt, outfreq, obs_err_pct, M, record_length, trans
    r = ssa_reconstruct(ssa_info, modes, sum_modes=true)
 
    if da
-      function find_point(r, tree, p, k, f)
-          ind, dist = knn(tree, p, k)
-          mask = (ind .+ f) .<= size(tree.data)[1]
-          dist = dist[mask]
-          ind = ind[mask]
-          return sum(dist .* r[validation .+ ind .- 1 .+ f, :], dims=1)/sum(dist)
-      end
-      validation = round(Int, 0.1*size(y)[1])
-      tree = KDTree(copy((y[validation:end, :])'))
-      tree_r = KDTree(copy((r[validation:end, :])'))
-      errs = Array{Float64}(undef, length(osc_vars), length(M:validation-window))
-
-      for (i, i_p) in enumerate(M:validation-window)
-          p = y[i_p, :]
-          p2 = find_point(r, tree, p, k, 0)
-
-          forecast = find_point(r, tree_r, p2[:], k_r, window)
-          err = r[i_p + window, :] - forecast'
-
-          errs[:, i] = err
-      end
-
-      R = cov(errs')
+      R = error_cov()
    else
       R = false
    end
@@ -85,7 +59,7 @@ function create_tree(; model, Δt, outfreq, obs_err_pct, M, record_length, trans
       tree = KDTree(copy(y'))
    end
 
-   return tree, tree_r, EW, EV, y, r, C, R
+   return tree, tree_r, ssa_info, y, r, R
 end
 
 function ens_forecast_compare(; model, model_err, integrator, m, M, D, k, k_r, modes,
