@@ -63,7 +63,7 @@ function ssa_decompose(x::Array{float_type, dim},
       C = X*X'/(N′*J)
       eig_vals, eig_vecs = eigen(C)
 
-      EV = X'*eig_vecs
+      eig_vecs = X'*eig_vecs
 
       # Normalize eigenvectors
       eig_vecs = eig_vecs./mapslices(norm, eig_vecs, dims=1)
