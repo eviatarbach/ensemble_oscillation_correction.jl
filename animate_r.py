@@ -8,7 +8,7 @@ import matplotlib.animation as animation
 mode = 3
 D = 4964
 M = 60
-year = 1910
+year = 2016
 year0 = 1901
 
 date = datetime.datetime(month=5, day=1, year=year)
@@ -32,6 +32,8 @@ def animate(i):
 		numpy.arange(6.5, 38.75, 0.25), m, levels=levels,
 		extend='both', cmap='RdBu')
     ax.set_title(date.strftime("%d %B %Y"))
+    ax.set_xlabel('Longitude')
+    ax.set_ylabel('Latitude')
     date += datetime.timedelta(days=1)
     return ax
     #plt.savefig('anim_' + str(i).zfill(2) + '.png')
@@ -45,6 +47,7 @@ contourplot = ax.contourf(numpy.arange(66.5, 100.25, 0.25),
 		          numpy.arange(6.5, 38.75, 0.25), m, levels=levels,
 			  extend='both', cmap='RdBu')
 cbar = plt.colorbar(contourplot)
+cbar.set_label('Rainfall anomaly (mm/day)')
 
 ani = animation.FuncAnimation(fig, animate, frames=range(153))
 ani.save('movie2.gif', writer='imagemagick')
