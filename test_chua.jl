@@ -26,7 +26,7 @@ obs_err_pct = 0.1
 transient = 3000
 mp = 9
 varimax = true
-da = false
+da = true
 inflation = false
 
 y0 = [-1.06095, 0.160678, 0.267729]

@@ -34,4 +34,21 @@ function error_cov(y, r, M, window, k, k_r, osc_vars; validation_pct=0.1)
     return R
 end
 
+function error_cov_full(y, window, k; validation_pct=0.1)
+    validation = round(Int, validation_pct*size(y)[1])
+    tree = KDTree(copy((y[validation:end, :])'))
+    errs = Array{Float64}(undef, size(y)[2], length(1:validation-window))
+
+    for (i, i_p) in enumerate(1:validation-window)
+        p = y[i_p, :]
+
+        forecast = find_point(y, tree, p[:], k, validation + window + 1)
+        err = y[i_p + window, :] - forecast'
+
+        errs[:, i] = err
+    end
+
+    R = cov(errs')
+    return R
+end
 end

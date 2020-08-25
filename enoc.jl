@@ -59,6 +59,7 @@ function setup(; model, Δt, outfreq, obs_err_pct, M, record_length, transient,
       _, _, v = svd(r)
       v = v[:, 1:pcs]
       tree = KDTree(copy(y'))
+      # TODO
    end
 
    return tree, tree_r, ssa_info, y, r, R
