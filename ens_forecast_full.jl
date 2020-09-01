@@ -99,6 +99,8 @@ function forecast(; E::Array{float_type, 2}, model, model_err, integrator,
 
         x_true = integrator(model, x_true, t, t + window*outfreq*Δt, Δt)
 
+        #y_forecast = x_true'
+
         t += window*outfreq*Δt
     end
 
