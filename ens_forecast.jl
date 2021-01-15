@@ -64,7 +64,7 @@ function forecast(; E::Array{float_type, 2}, model, model_err, integrator,
         x_m = mean(E, dims=2)
         append!(errs_uncorr, sqrt(mean((x_m .- x_true).^2)))
 
-        if (r_forecast != nothing)
+        if (r_forecast !== nothing)
             r_ens = vcat([find_point(r, tree, E[:, i], k, 0) for i=1:m]...)
             r_errs = sqrt.(mean((r_ens .- r_forecast).^2, dims=2))
             append!(r_errs_hist, r_errs)

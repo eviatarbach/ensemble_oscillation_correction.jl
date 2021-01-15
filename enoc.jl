@@ -52,7 +52,7 @@ function setup(; model, Δt, outfreq, obs_err_pct, M, record_length, transient,
       R = false
    end
 
-   if pcs == nothing
+   if pcs === nothing
       tree = KDTree(copy(y'))
       tree_r = KDTree(copy(r'))
    else
