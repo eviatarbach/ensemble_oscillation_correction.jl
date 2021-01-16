@@ -16,10 +16,13 @@ using Random
 
 using NearestNeighbors
 using Distributions
+using PyCall
 
 struct Forecast_Info
     errs
     errs_uncorr
+    crps
+    crps_uncorr
     spread
     r_errs
     ens_errs
@@ -28,6 +31,9 @@ struct Forecast_Info
     errs_m
     r_forecasts
 end
+
+xskillscore = pyimport("xskillscore")
+xarray = pyimport("xarray")
 
 function is_valid(p, model, integrator, t, Δt, test_time, bounds)
     end_point = integrator(model, p, t, t + test_time, Δt)
@@ -47,6 +53,8 @@ function forecast(; E::Array{float_type, 2}, model, model_err, integrator,
 
     errs = []
     errs_uncorr = []
+    crps = []
+    crps_uncorr = []
     spread = []
     r_errs_hist = []
     ens_errs = []
@@ -72,14 +80,24 @@ function forecast(; E::Array{float_type, 2}, model, model_err, integrator,
             append!(r_forecasts, r_forecast)
 
             if !da
-                x_m = mean(E[:, (sortperm(r_errs[:]))[1:mp]], dims=2)
+                E_mp = E[:, (sortperm(r_errs[:]))[1:mp]]
+                E_mp_array = xarray.DataArray(data=E_mp, dims=["dim", "member"])
+                E_array = xarray.DataArray(data=E, dims=["dim", "member"])
+                x_m = mean(E_mp, dims=2)
                 append!(errs, sqrt(mean((x_m .- x_true).^2)))
+                append!(crps, xskillscore.crps_ensemble(x_true, E_mp_array))
+                append!(crps_uncorr, xskillscore.crps_ensemble(x_true, E_array))
                 append!(ens, E)
             else
+                E_array = xarray.DataArray(data=E, dims=["dim", "member"])
                 E = etkf(E=E, R_inv=R_inv, inflation=inflation,
                          H=x->find_point(r, tree, x, k, 0), y=r_forecast)
+                E_corr_array = xarray.DataArray(data=E, dims=["dim", "member"])
                 x_m = mean(E, dims=2)
                 append!(errs, sqrt(mean((x_m .- x_true).^2)))
+                append!(crps, xskillscore.crps_ensemble(x_true, E_corr_array))
+                append!(crps_uncorr, xskillscore.crps_ensemble(x_true, E_array))
+                append!(ens, E)
             end
             append!(x_trues, x_true)
             append!(errs_m, sqrt(mean((means .- x_true).^2)))
@@ -123,8 +141,9 @@ function forecast(; E::Array{float_type, 2}, model, model_err, integrator,
     ens = reshape(ens, D, m, :)
     x_trues = reshape(x_trues, D, :)
     r_forecasts = reshape(r_forecasts, length(osc_vars), :)
-    return Forecast_Info(errs, errs_uncorr, spread, r_errs_hist, ens_errs, ens,
-                         x_trues, errs_m, r_forecasts)
+    return Forecast_Info(errs, errs_uncorr, crps, crps_uncorr, spread,
+                         r_errs_hist, ens_errs, ens, x_trues, errs_m,
+                         r_forecasts)
 end
 
 end
