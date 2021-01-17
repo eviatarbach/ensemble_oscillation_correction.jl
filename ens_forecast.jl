@@ -85,8 +85,8 @@ function forecast(; E::Array{float_type, 2}, model, model_err, integrator,
                 E_array = xarray.DataArray(data=E, dims=["dim", "member"])
                 x_m = mean(E_mp, dims=2)
                 append!(errs, sqrt(mean((x_m .- x_true).^2)))
-                append!(crps, xskillscore.crps_ensemble(x_true, E_mp_array))
-                append!(crps_uncorr, xskillscore.crps_ensemble(x_true, E_array))
+                append!(crps, xskillscore.crps_ensemble(x_true, E_mp_array).values[1])
+                append!(crps_uncorr, xskillscore.crps_ensemble(x_true, E_array).values[1])
                 append!(ens, E)
             else
                 E_array = xarray.DataArray(data=E, dims=["dim", "member"])
@@ -95,8 +95,8 @@ function forecast(; E::Array{float_type, 2}, model, model_err, integrator,
                 E_corr_array = xarray.DataArray(data=E, dims=["dim", "member"])
                 x_m = mean(E, dims=2)
                 append!(errs, sqrt(mean((x_m .- x_true).^2)))
-                append!(crps, xskillscore.crps_ensemble(x_true, E_corr_array))
-                append!(crps_uncorr, xskillscore.crps_ensemble(x_true, E_array))
+                append!(crps, xskillscore.crps_ensemble(x_true, E_corr_array).values[1])
+                append!(crps_uncorr, xskillscore.crps_ensemble(x_true, E_array).values[1])
                 append!(ens, E)
             end
             append!(x_trues, x_true)
