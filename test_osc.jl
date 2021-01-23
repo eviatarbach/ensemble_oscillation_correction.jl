@@ -1,3 +1,8 @@
+using Serialization
+using Random
+
+Random.seed!(1234)
+
 include("models.jl")
 include("integrators.jl")
 include("enoc.jl")
@@ -10,6 +15,10 @@ D = 5
 k = 40
 k_r = 30
 
+window = 50
+da = false
+inflation = 1.0
+
 osc_vars = 1:2
 modes = 1:2
 model = Models.osc_true
@@ -18,18 +27,34 @@ integrator = Integrators.rk4
 outfreq = 10
 Δt = 0.05
 m = 20
-cycles = 100
-window = 70
+cycles = 1000
 record_length = 25000
 ens_err_pct = 0.2
 obs_err_pct = 0.1
-varimax = false
 transient = 3000
-mp = 9
-da = false
-inflation = false
-
+mp = 5
 y0 = [randn(3)..., 0, 0.3*10]
+varimax = false
+check_bounds = false
+y_fcst = true
+α = 0.5
+
+if !da
+    info, ssa_info = enoc.run(model=model, model_err=model_err, M=M, D=D, k=k,
+                              k_r=k_r, modes=modes, osc_vars=osc_vars,
+                              integrator=integrator, outfreq=outfreq, Δt=Δt,
+                              m=m, cycles=1000, window=window,
+                              record_length=record_length,
+                              ens_err_pct=ens_err_pct, obs_err_pct=obs_err_pct,
+                              transient=transient, y0=y0, mp=mp,
+                              varimax=varimax, da=false, inflation=inflation,
+                              check_bounds=check_bounds, y_fcst=y_fcst, α=α,
+                              preload="osc")
+
+    mp = argmin(enoc.optimal_ens(info)[1])[1]
+end
+
+Random.seed!(1234)
 
 info, ssa_info = enoc.run(model=model, model_err=model_err, M=M, D=D, k=k,
                           k_r=k_r, modes=modes, osc_vars=osc_vars,
@@ -37,5 +62,8 @@ info, ssa_info = enoc.run(model=model, model_err=model_err, M=M, D=D, k=k,
                           cycles=cycles, window=window,
                           record_length=record_length, ens_err_pct=ens_err_pct,
                           obs_err_pct=obs_err_pct, transient=transient, y0=y0,
-                          mp=mp, varimax=varimax, check_bounds=false,
-                          test_time=nothing, da=da, inflation=inflation)
+                          mp=mp, varimax=varimax, da=da, inflation=inflation,
+                          check_bounds=check_bounds, y_fcst=y_fcst, α=α,
+                          preload="chua")
+
+serialize(open(string("out_osc_", ARGS[1]), "w"), info)

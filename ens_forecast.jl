@@ -30,6 +30,8 @@ struct Forecast_Info
     x_trues
     errs_m
     r_forecasts
+    stds
+    errs_y_fcst
 end
 
 xskillscore = pyimport("xskillscore")
@@ -44,7 +46,7 @@ function forecast(; E::Array{float_type, 2}, model, model_err, integrator,
                   m::Integer, Δt::float_type, window::Integer, cycles::Integer,
                   outfreq::Integer, D::Integer, k, k_r, r, tree, tree_r,
                   osc_vars=1:D, means, stds, err_pct::float_type, mp, check_bounds,
-                  test_time, bounds, da, R, inflation) where {float_type<:AbstractFloat}
+                  test_time, bounds, da, R, inflation, var_model, α) where {float_type<:AbstractFloat}
     if da
         R_inv = inv(R)
     end
@@ -62,9 +64,11 @@ function forecast(; E::Array{float_type, 2}, model, model_err, integrator,
     x_trues = []
     errs_m = []
     r_forecasts = []
+    errs_y_fcst = []
 
     t = 0.0
     r_forecast = nothing
+    hybrid_fcsts = zeros(size(E))*NaN
 
     for cycle=1:cycles
         println(cycle)
@@ -85,6 +89,9 @@ function forecast(; E::Array{float_type, 2}, model, model_err, integrator,
                 E_array = xarray.DataArray(data=E, dims=["dim", "member"])
                 x_m = mean(E_mp, dims=2)
                 append!(errs, sqrt(mean((x_m .- x_true).^2)))
+                if var_model !== nothing
+                    append!(errs_y_fcst, sqrt(mean((mean(hybrid_fcsts, dims=2) .- x_true).^2)))
+                end
                 append!(crps, xskillscore.crps_ensemble(x_true, E_mp_array).values[1])
                 append!(crps_uncorr, xskillscore.crps_ensemble(x_true, E_array).values[1])
                 append!(ens, E)
@@ -128,7 +135,16 @@ function forecast(; E::Array{float_type, 2}, model, model_err, integrator,
         r_forecast = find_point(r, tree_r, p2, k_r, window)
 
         for i=1:m
-            E[:, i] = integrator(model_err, E[:, i], t, t + window*outfreq*Δt, Δt)
+            integration = integrator(model_err, E[:, i], t,
+                                     t + window*outfreq*Δt, Δt, inplace=false)
+            E[:, i] = integration[end, :]
+            if var_model !== nothing
+                if window >= var_model.k_ar
+                    y_fcst = var_model.forecast(integration[end-var_model.k_ar+1:end, :],
+                                                window)[end, :]
+                    hybrid_fcsts[:, i] = α*E[:, i] + (1 - α)*y_fcst
+                end
+            end
         end
 
         x_true = integrator(model, x_true, t, t + window*outfreq*Δt, Δt)
@@ -143,7 +159,7 @@ function forecast(; E::Array{float_type, 2}, model, model_err, integrator,
     r_forecasts = reshape(r_forecasts, length(osc_vars), :)
     return Forecast_Info(errs, errs_uncorr, crps, crps_uncorr, spread,
                          r_errs_hist, ens_errs, ens, x_trues, errs_m,
-                         r_forecasts)
+                         r_forecasts, stds, errs_y_fcst)
 end
 
 end
