@@ -12,7 +12,7 @@ using .enoc
 
 M = 100
 D = 5
-k = 40
+k = 30
 k_r = 30
 
 window = {window}
@@ -51,7 +51,7 @@ if !da
     mp = argmin(enoc.optimal_ens(info)[1])[1]
 end
 
-Random.seed!(1234)
+# Random.seed!(1234)
 
 info, ssa_info = enoc.run(model=model, model_err=model_err, M=M, D=D, k=k,
                           k_r=k_r, modes=modes, osc_vars=osc_vars,
