@@ -27,7 +27,7 @@ integrator = Integrators.rk4
 outfreq = 4
 Δt = 0.1
 m = 20
-cycles = 10000
+cycles = 1000
 record_length = 25000
 ens_err_pct = 0.2
 obs_err_pct = 0.1
@@ -36,6 +36,8 @@ mp = 5
 y0 = rand(D)
 varimax = false
 check_bounds = false
+y_fcst = true
+α = 0.5
 
 if !da
     info, ssa_info = enoc.run(model=model, model_err=model_err, M=M, D=D, k=k,
@@ -46,12 +48,13 @@ if !da
                               ens_err_pct=ens_err_pct, obs_err_pct=obs_err_pct,
                               transient=transient, y0=y0, mp=mp,
                               varimax=varimax, da=false, inflation=inflation,
-                              check_bounds=check_bounds)
+                              check_bounds=check_bounds, y_fcst=y_fcst, α=α,
+                              preload="colpitts")
 
     mp = argmin(enoc.optimal_ens(info)[1])[1]
 end
 
-Random.seed!(1234)
+# Random.seed!(1234)
 
 info, ssa_info = enoc.run(model=model, model_err=model_err, M=M, D=D, k=k,
                           k_r=k_r, modes=modes, osc_vars=osc_vars,
@@ -60,6 +63,7 @@ info, ssa_info = enoc.run(model=model, model_err=model_err, M=M, D=D, k=k,
                           record_length=record_length, ens_err_pct=ens_err_pct,
                           obs_err_pct=obs_err_pct, transient=transient, y0=y0,
                           mp=mp, varimax=varimax, da=da, inflation=inflation,
-                          check_bounds=check_bounds)
+                          check_bounds=check_bounds, y_fcst=y_fcst, α=α,
+                          preload="colpitts")
 
 serialize(open(string("out_colpitts_", ARGS[1]), "w"), info)
