@@ -12,7 +12,7 @@ using .enoc
 
 M = 60
 D = 3
-k = 40
+k = 30
 k_r = 30
 
 window = {window}
@@ -27,7 +27,7 @@ integrator = Integrators.rk4
 outfreq = 1
 Δt = 0.1
 m = 20
-cycles = 10000
+cycles = 1000
 record_length = 25000
 ens_err_pct = 0.2
 obs_err_pct = 0.1
@@ -50,12 +50,10 @@ if !da
                               transient=transient, y0=y0, mp=mp,
                               varimax=varimax, da=false, inflation=inflation,
                               check_bounds=check_bounds, y_fcst=y_fcst, α=α,
-                          preload="chua")
+                              preload="chua")
 
     mp = argmin(enoc.optimal_ens(info)[1])[1]
 end
-
-Random.seed!(1234)
 
 info, ssa_info = enoc.run(model=model, model_err=model_err, M=M, D=D, k=k,
                           k_r=k_r, modes=modes, osc_vars=osc_vars,
