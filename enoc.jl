@@ -50,12 +50,6 @@ function setup(; model, Δt, outfreq, obs_err_pct, M, record_length, transient,
 
     r = ssa_reconstruct(ssa_info, modes, sum_modes=true)
 
-    if da
-        R = error_cov(y, r, M, window, k, k_r, osc_vars)
-    else
-        R = false
-    end
-
     if pcs === nothing
         tree = KDTree(copy(y'))
         tree_r = KDTree(copy(r'))
@@ -65,7 +59,7 @@ function setup(; model, Δt, outfreq, obs_err_pct, M, record_length, transient,
         tree = KDTree(copy(y'))
     end
 
-    return tree, tree_r, ssa_info, y, r, R
+    return tree, tree_r, ssa_info, y, r
 end
 
 function run(; model, model_err, integrator, m, M, D, k, k_r, modes, osc_vars,
@@ -75,12 +69,12 @@ function run(; model, model_err, integrator, m, M, D, k, k_r, modes, osc_vars,
              preload=nothing)
 
     if (preload === nothing) | !isfile(preload)
-        tree, tree_r, ssa_info, y, r, R = setup(model=model, record_length=record_length,
-                                                integrator=integrator, Δt=Δt, y0=y0,
-                                                transient=transient, outfreq=outfreq,
-                                                obs_err_pct=obs_err_pct, osc_vars=osc_vars,
-                                                D=D, M=M, modes=modes, varimax=varimax,
-                                                da=da, window=window, k=k, k_r=k_r)
+        tree, tree_r, ssa_info, y, r = setup(model=model, record_length=record_length,
+                                             integrator=integrator, Δt=Δt, y0=y0,
+                                             transient=transient, outfreq=outfreq,
+                                             obs_err_pct=obs_err_pct, osc_vars=osc_vars,
+                                             D=D, M=M, modes=modes, varimax=varimax,
+                                             da=da, window=window, k=k, k_r=k_r)
 
         if y_fcst
             var_model = tsa.VAR(y).fit(maxlags=15, ic="aic")
@@ -91,6 +85,12 @@ function run(; model, model_err, integrator, m, M, D, k, k_r, modes, osc_vars,
         serialize(preload, (tree, tree_r, ssa_info, y, r, var_model))
     else
         tree, tree_r, ssa_info, y, r, var_model = deserialize(preload)
+    end
+
+    if da
+        R = error_cov(y, r, M, window, k, k_r, osc_vars)
+    else
+        R = false
     end
 
     E = integrator(model_err, y[end, :], 0.0, m*Δt*outfreq, Δt, inplace=false)[1:outfreq:end, :]'
