@@ -88,9 +88,9 @@ function run(; model, model_err, integrator, m, M, D, k, k_r, modes, osc_vars,
             var_model = nothing
         end
 
-        serialize(preload, (tree, tree_r, ssa_info, y, r, R, var_model))
+        serialize(preload, (tree, tree_r, ssa_info, y, r, var_model))
     else
-        tree, tree_r, ssa_info, y, r, R, var_model = deserialize(preload)
+        tree, tree_r, ssa_info, y, r, var_model = deserialize(preload)
     end
 
     E = integrator(model_err, y[end, :], 0.0, m*Δt*outfreq, Δt, inplace=false)[1:outfreq:end, :]'

@@ -12,7 +12,7 @@ using .enoc
 
 M = 30
 D = 6
-k = 40
+k = 30
 k_r = 30
 
 window = {window}
