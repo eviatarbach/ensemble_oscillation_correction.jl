@@ -64,6 +64,6 @@ info, ssa_info = enoc.run(model=model, model_err=model_err, M=M, D=D, k=k,
                           obs_err_pct=obs_err_pct, transient=transient, y0=y0,
                           mp=mp, varimax=varimax, da=da, inflation=inflation,
                           check_bounds=check_bounds, y_fcst=y_fcst, α=α,
-                          preload="chua")
+                          preload="osc")
 
 serialize(open(string("out_osc_", ARGS[1]), "w"), info)

@@ -24,12 +24,27 @@ nanmean(x) = mean(filter(!isnan,x))
 nanmean(x,y) = mapslices(nanmean,x,dims=y)
 
 tsa = pyimport("statsmodels.tsa.api")
+xskillscore = pyimport("xskillscore")
+xarray = pyimport("xarray")
 
 function optimal_ens(info)
     D, m, N = size(info.ens)
     errs = [[sqrt(mean((nanmean(info.ens[:, (sortperm(info.r_errs[j, :]))[1:i], j], 2) - info.x_trues[:, j]).^2)) for j=1:N] for i=1:m]
     errs_rand = [[sqrt(mean((nanmean(info.ens[:, shuffle(sortperm(info.r_errs[j, :]))[1:i], j], 2) - info.x_trues[:, j]).^2)) for j=1:N] for i=1:m]
     return mean(hcat(errs...), dims=1)', mean(hcat(errs_rand...), dims=1)'
+end
+
+function optimal_ens_crps(info)
+    D, m, N = size(info.ens)
+    errs = zeros(m, N)
+    for mp=1:m
+        for j=1:N
+            E_mp = info.ens[:, (sortperm(info.r_errs[j, :]))[1:mp], j]
+            E_mp_array = xarray.DataArray(data=E_mp, dims=["dim", "member"])
+            errs[mp, j] = xskillscore.crps_ensemble(info.x_trues[:, j], E_corr_array).values[1]
+        end
+    end
+    return errs
 end
 
 function setup(; model, Δt, outfreq, obs_err_pct, M, record_length, transient,

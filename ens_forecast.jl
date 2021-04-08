@@ -74,7 +74,7 @@ function forecast(; E::Array{float_type, 2}, model, model_err, integrator,
         println(cycle)
 
         x_m = mean(E, dims=2)
-        append!(errs_uncorr, sqrt(mean((x_m .- x_true).^2)))
+        append!(errs_uncorr, sqrt(mean((x_m .- x_true)[osc_vars, :].^2)))
 
         if (r_forecast !== nothing)
             r_ens = vcat([find_point(r, tree, E[:, i], k, 0) for i=1:m]...)
@@ -88,7 +88,7 @@ function forecast(; E::Array{float_type, 2}, model, model_err, integrator,
                 E_mp_array = xarray.DataArray(data=E_mp, dims=["dim", "member"])
                 E_array = xarray.DataArray(data=E, dims=["dim", "member"])
                 x_m = mean(E_mp, dims=2)
-                append!(errs, sqrt(mean((x_m .- x_true).^2)))
+                append!(errs, sqrt(mean((x_m .- x_true)[osc_vars, :].^2)))
                 if var_model !== nothing
                     append!(errs_y_fcst, sqrt(mean((mean(hybrid_fcsts, dims=2) .- x_true).^2)))
                 end
@@ -101,7 +101,7 @@ function forecast(; E::Array{float_type, 2}, model, model_err, integrator,
                          H=x->find_point(r, tree, x, k, 0), y=r_forecast)
                 E_corr_array = xarray.DataArray(data=E, dims=["dim", "member"])
                 x_m = mean(E, dims=2)
-                append!(errs, sqrt(mean((x_m .- x_true).^2)))
+                append!(errs, sqrt(mean((x_m .- x_true)[osc_vars, :].^2)))
                 append!(crps, xskillscore.crps_ensemble(x_true, E_corr_array).values[1])
                 append!(crps_uncorr, xskillscore.crps_ensemble(x_true, E_array).values[1])
                 append!(ens, E)

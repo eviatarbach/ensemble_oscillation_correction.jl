@@ -28,6 +28,7 @@ transient = 3000
 mp = 9
 da = false
 inflation = false
+y_fcst = false
 
 y0 = rand(D)
 
@@ -38,4 +39,5 @@ info, ssa_info = enoc.run(model=model, model_err=model_err, M=M, D=D, k=k,
                           record_length=record_length, ens_err_pct=ens_err_pct,
                           obs_err_pct=obs_err_pct, transient=transient, y0=y0,
                           mp=mp, varimax=varimax, check_bounds=false,
-                          test_time=nothing, da=da, inflation=inflation)
+                          test_time=nothing, da=da, inflation=inflation,
+                          y_fcst=false, preload="colpitts")
