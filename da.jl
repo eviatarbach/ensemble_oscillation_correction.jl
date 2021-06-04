@@ -14,14 +14,14 @@ function etkf(;E, R_inv, inflation, H, y)
     x_m = mean(E, dims=2)
     X = (E .- x_m)/sqrt(m - 1)
 
-    X = inflation*X
+    X = sqrt(inflation)*X
 
     y_m = H(x_m)
     Y = (vcat([H(E[:, i]) for i=1:m]...) .- y_m)'/sqrt(m - 1)
-    Ω = real((I + Y'*R_inv*Y)^(-1))
+    Ω = inv(Symmetric(I + Y'*R_inv*Y))
     w = Ω*Y'*R_inv*(y - y_m)'
 
-    E = real(x_m .+ X*(w .+ sqrt(m - 1)*Ω^(1/2)))
+    E = x_m .+ X*(w .+ sqrt(m - 1)*sqrt(Ω))
 
     return E
 end
